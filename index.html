@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lock-E</title>
+<style>
+:root{
+  --sand:#CDC5B2; --tan:#9E8E79; --brown:#60453E; --slate:#6A6D71; --ink:#292220;
+  --card:#E4DED0; --line:#B9AE98; --green:#2E8B45; --red:#A8402F;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--sand);overscroll-behavior:none;
+  font-family:"Trebuchet MS","Segoe UI",system-ui,-apple-system,sans-serif;color:var(--ink)}
+button{font-family:inherit;cursor:pointer}
+#app{position:relative;width:100%;height:100vh;height:100dvh;background:var(--sand);display:flex;flex-direction:column;overflow:hidden}
+
+/* Header */
+header{flex:none;height:58px;padding:0 16px;padding-top:env(safe-area-inset-top,0);box-sizing:content-box;
+  display:flex;align-items:center;justify-content:space-between;background:var(--ink);color:var(--sand);z-index:5}
+.logo{display:flex;align-items:center;gap:8px;font-size:24px;font-weight:800;letter-spacing:.3px;background:none;border:0;color:inherit;padding:0;font-family:inherit;cursor:pointer}
+.logo svg{width:26px;height:26px}
+.logo b{color:var(--tan)}
+.loginbtn{display:flex;align-items:center;gap:8px;background:transparent;color:var(--sand);border:1.5px solid var(--tan);
+  border-radius:999px;padding:7px 14px;font-weight:700;font-size:14px}
+.loginbtn svg{width:18px;height:18px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--tan);color:var(--ink);font-weight:800;border:2px solid var(--sand);font-size:16px;padding:0}
+
+#banner{flex:none;display:none;background:var(--brown);color:var(--sand);font-size:13px;padding:8px max(16px,calc((100% - 640px)/2));
+  align-items:center;justify-content:space-between;border:0;width:100%;text-align:left}
+#banner.show{display:flex}
+#banner b{font-variant-numeric:tabular-nums}
+
+/* Views */
+main{position:relative;flex:1;min-height:0}
+.view{position:absolute;inset:0;display:none;overflow-y:auto;padding:16px max(16px,calc((100% - 640px)/2)) 56px}
+.view.active{display:block}
+#v-map{padding:0;overflow:hidden;background:#BDB29D;touch-action:none;user-select:none}
+#mapsvg{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#mapsvg:active{cursor:grabbing}
+.mk{cursor:pointer;transition:opacity .3s;filter:drop-shadow(0 3px 3px rgba(0,0,0,.5))}
+.ui{position:absolute;z-index:3}
+.zoom{top:12px;right:12px;display:flex;flex-direction:column;gap:8px}
+.zoom button{width:42px;height:42px;border-radius:12px;border:0;background:var(--ink);color:var(--sand);display:grid;place-items:center;box-shadow:0 3px 10px #0004}
+.zoom button svg{width:20px;height:20px}
+.zoom button:active{background:var(--brown)}
+.legend{top:12px;left:12px;background:#292220d9;color:var(--sand);font-size:12px;padding:7px 11px;border-radius:999px;display:none}
+.legend.show{display:block}
+#mapCard{left:12px;right:12px;bottom:40px;max-width:480px;margin:0 auto;background:var(--ink);color:var(--sand);border-radius:18px;padding:14px;
+  display:none;align-items:center;gap:12px;box-shadow:0 8px 24px #0006}
+#mapCard.show{display:flex}
+#mapCard .t{flex:1;min-width:0}
+#mapCard .t b{display:block;font-size:16px}
+#mapCard .t span{font-size:12px;color:var(--tan)}
+.chipbtn{border:0;border-radius:12px;padding:10px 14px;font-weight:700;font-size:13px;background:var(--tan);color:var(--ink)}
+.xbtn{border:0;background:transparent;color:var(--sand);width:32px;height:32px;padding:0}
+.xbtn svg{width:20px;height:20px}
+
+/* Nav */
+nav{flex:none;position:relative;background:var(--ink);padding-bottom:env(safe-area-inset-bottom,0);z-index:6;border-top:1px solid #3d322f}
+.navin{position:relative;height:64px;max-width:560px;margin:0 auto;display:grid;grid-template-columns:1fr 92px 1fr}
+#tabMap{grid-column:1}#tabPoints{grid-column:3}
+.tabbtn{background:transparent;border:0;color:var(--slate);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11.5px;font-weight:700}
+.tabbtn svg{width:25px;height:25px}
+.tabbtn.on{color:var(--sand)}
+.fab{position:absolute;left:50%;top:-30px;transform:translateX(-50%);width:68px;height:68px;border-radius:50%;
+  background:var(--tan);color:var(--ink);border:6px solid var(--ink);display:grid;place-items:center;
+  box-shadow:0 6px 16px #0007;transition:background .2s,transform .15s}
+.fab svg{width:30px;height:30px}
+.fab:active{transform:translateX(-50%) scale(.94)}
+.fab.on{background:var(--sand)}
+
+/* Common UI */
+h2{margin:0;font-size:24px;letter-spacing:.2px}
+h3{margin:0 0 10px;font-size:16px}
+.muted{color:#4a413d;font-size:13px}
+.small{font-size:12.5px;color:#4a413d;line-height:1.45}
+.green{color:var(--green)}
+.red{color:var(--red)}
+.pagehead{margin:2px 0 14px}
+.pagehead p{margin:4px 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.btn{width:100%;border:0;border-radius:14px;padding:14px 16px;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn svg{width:19px;height:19px}
+.btn.primary{background:var(--ink);color:var(--sand)}
+.btn.secondary{background:transparent;color:var(--brown);border:2px solid var(--brown)}
+.btn.soft{background:var(--tan);color:var(--ink)}
+.btn.danger{background:transparent;color:var(--red);border:2px solid var(--red)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn+.btn,.card+.btn{margin-top:10px}
+.back{background:transparent;border:0;color:var(--brown);font-weight:800;font-size:14px;display:flex;align-items:center;gap:4px;padding:0 0 12px}
+.back svg{width:18px;height:18px}
+
+/* List */
+.item{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:6px 10px 6px 6px;margin-bottom:10px}
+.itemMain{flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:left;background:transparent;border:0;color:var(--ink);padding:6px 8px;border-radius:12px}
+.itemMain:active{background:#d8d1c0}
+.mapBtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:var(--ink);color:var(--sand);display:grid;place-items:center}
+.mapBtn svg{width:22px;height:22px}
+.mapBtn:active{background:var(--brown)}
+p.small{margin:8px 0}
+.pscore{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.pnum{font-size:46px;font-weight:800;line-height:1;min-width:46px;text-align:center}
+.ptable{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:8px 0}
+.prow{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;font-size:13px;border-bottom:1px solid var(--line)}
+.prow:last-child{border:0}
+.prow.cur{background:var(--ink);color:var(--sand)}
+.item .ico{width:42px;height:42px;border-radius:12px;background:var(--ink);display:grid;place-items:center;flex:none}
+.item .ico svg{width:26px;height:26px}
+.item .mid{flex:1;min-width:0}
+.item .brand{font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .dist{font-size:12px;color:var(--slate);margin-top:2px}
+.item .cnt{text-align:right}
+.item .cnt b{display:block;font-size:24px;line-height:1}
+.item .cnt span{font-size:10.5px;color:var(--slate)}
+.moreBtn{margin-top:6px}
+
+/* Locker view */
+.lhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.lhead .tot{text-align:right}
+.lhead .tot b{font-size:34px;line-height:1;display:block}
+.lhead .tot span{font-size:11px;color:var(--slate)}
+.sizes{display:flex;flex-direction:column;gap:10px}
+.size{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--sand);border:2px solid transparent;
+  border-radius:14px;padding:12px 14px;color:var(--ink)}
+.size.sel{border-color:var(--ink);background:#d8d0be}
+.size:disabled{opacity:.5;cursor:not-allowed}
+.size .shapebox{width:46px;height:40px;display:flex;align-items:flex-end;justify-content:center;flex:none}
+.size .shape{width:38px;background:var(--brown);border-radius:4px;border:2px solid var(--ink)}
+.size .mid{flex:1}
+.size .mid b{font-size:17px;display:block}
+.size .mid span{font-size:12px;color:var(--slate)}
+.size .n{font-size:28px;font-weight:800;text-align:right;line-height:1}
+.size .n small{display:block;font-size:10.5px;font-weight:400;color:var(--slate);margin-top:2px}
+.note{font-size:12.5px;line-height:1.45;margin:2px 2px 14px;color:#3b312e}
+
+/* Reserve */
+.checks{list-style:none;margin:0;padding:0}
+.checks li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.checks li:last-child{border:0}
+.checks .st{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;color:#fff}
+.checks .st svg{width:14px;height:14px}
+.checks .ok{background:var(--green)}
+.checks .ko{background:var(--red)}
+.checks small{display:block;color:var(--slate);font-size:12px}
+.kv{display:flex;justify-content:space-between;padding:7px 0;font-size:14px}
+.kv span:first-child{color:#4a413d}
+.kv b{text-align:right}
+
+/* Points */
+.pts{text-align:center;padding:26px 14px}
+.pts .coin{width:84px;height:84px;margin:0 auto 10px;border-radius:50%;background:var(--ink);color:var(--tan);display:grid;place-items:center;border:4px solid var(--tan)}
+.pts .coin svg{width:42px;height:42px}
+.pts .num{font-size:64px;font-weight:800;line-height:1}
+.pts .lbl{color:var(--slate);font-size:14px;margin-top:2px}
+.cd{font-variant-numeric:tabular-nums;font-weight:800}
+.rcard{background:var(--ink);color:var(--sand);border-radius:18px;padding:16px;margin-bottom:12px}
+.rcard h3{color:var(--sand)}
+.rcard .time{font-size:40px;font-weight:800;font-variant-numeric:tabular-nums;margin:4px 0 8px}
+.rcard .small{color:var(--tan)}
+.rcard .row{display:flex;gap:8px;margin-top:12px}
+.rcard .row .btn{padding:11px 8px;font-size:12.5px}
+.rcard .btn.soft{background:var(--tan)}
+.rcard .btn.ghost{background:transparent;border:2px solid var(--tan);color:var(--sand)}
+ol.how{margin:0;padding-left:20px;font-size:13.5px;line-height:1.55}
+ol.how li{margin-bottom:4px}
+
+/* Modal + toast */
+#modal{position:absolute;inset:0;background:#171210b3;z-index:20;display:none;align-items:flex-end}
+#modal.show{display:flex}
+.sheet{width:100%;max-width:520px;margin:0 auto;background:var(--sand);border-radius:24px 24px 0 0;padding:22px 18px 26px;max-height:92%;overflow:auto;animation:up .25s ease-out}
+@media(min-width:700px){#modal{align-items:center;padding:20px}.sheet{border-radius:24px}}
+@keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
+.sheet h2{margin-bottom:4px}
+.field{display:block;margin-top:12px;font-size:13px;font-weight:700}
+.field input{display:block;width:100%;margin-top:5px;padding:12px;border-radius:12px;border:2px solid var(--line);background:var(--card);font:inherit;font-size:15px;color:var(--ink)}
+.field input:focus{outline:none;border-color:var(--brown)}
+.err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px}
+#toast{position:absolute;left:0;right:0;margin:0 auto;width:calc(100% - 32px);max-width:440px;bottom:84px;background:var(--ink);color:var(--sand);padding:12px 16px;border-radius:14px;font-size:13.5px;
+  z-index:30;opacity:0;pointer-events:none;transform:translateY(10px);transition:.25s;box-shadow:0 8px 22px #0006}
+#toast.show{opacity:1;transform:none}
+button:focus-visible{outline:3px solid var(--tan);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <button class="logo" data-act="home" aria-label="Lock-E, go to map">
+      <svg viewBox="0 0 32 32" fill="none"><rect x="3" y="4" width="26" height="24" rx="4" fill="#9E8E79"/><rect x="6" y="7" width="9" height="8" rx="1.5" fill="#292220"/><rect x="17" y="7" width="9" height="8" rx="1.5" fill="#292220"/><rect x="6" y="17" width="9" height="8" rx="1.5" fill="#292220"/><rect x="17" y="17" width="9" height="8" rx="1.5" fill="#CDC5B2"/><circle cx="22" cy="21" r="1.4" fill="#292220"/></svg>
+      <span>Lock<b>-E</b></span>
+    </button>
+    <div id="authSlot"></div>
+  </header>
+  <button id="banner" data-act="goPoints"></button>
+
+  <main>
+    <section id="v-map" class="view active">
+      <svg id="mapsvg"><g id="world"></g><g id="mk"></g></svg>
+      <div class="ui legend" id="legend">Shaded area: more than 3 km from home</div>
+      <div class="ui zoom">
+        <button data-act="zoomIn" aria-label="Zoom in"></button>
+        <button data-act="zoomOut" aria-label="Zoom out"></button>
+        <button data-act="locate" aria-label="My position"></button>
+      </div>
+      <div class="ui" id="mapCard"></div>
+    </section>
+    <section id="v-search" class="view"></section>
+    <section id="v-points" class="view"></section>
+    <section id="v-locker" class="view"></section>
+    <section id="v-reserve" class="view"></section>
+  </main>
+
+  <nav><div class="navin">
+    <button class="tabbtn on" data-act="tab" data-tab="map" id="tabMap"></button>
+    <button class="fab" data-act="tab" data-tab="search" id="tabSearch" aria-label="Search lockers"></button>
+    <button class="tabbtn" data-act="tab" data-tab="points" id="tabPoints"></button>
+  </div></nav>
+
+  <div id="modal"></div>
+  <div id="toast"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+const DAY=86400000, MIN=60000;
+
+const I={
+ map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>',
+ search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.9-4.9"/></svg>',
+ coin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m12 7.5 1.4 3 3.1.4-2.3 2.2.6 3.2-2.8-1.6-2.8 1.6.6-3.2-2.3-2.2 3.1-.4z"/></svg>',
+ user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg>',
+ back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>',
+ pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+ check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>',
+ x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+ plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+ minus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+ locate:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8.5"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg>',
+ locker:'<svg viewBox="0 0 26 26"><rect x="2" y="2" width="22" height="22" rx="3" fill="#9E8E79"/><rect x="4.5" y="4.5" width="7.5" height="7" rx="1" fill="#292220"/><rect x="14" y="4.5" width="7.5" height="7" rx="1" fill="#292220"/><rect x="4.5" y="14" width="7.5" height="7.5" rx="1" fill="#292220"/><rect x="14" y="14" width="7.5" height="7.5" rx="1" fill="#CDC5B2"/></svg>'
+};
+
+/* ---------- world & data ---------- */
+const W=1600,H=1200,MPU=4;            // 1 map unit = 4 m
+const XS=[60,250,430,640,830,1010,1200,1390,1550];
+const YS=[70,230,400,560,720,880,1030,1140];
+const MAINX=[3,5], MAINY=[3,5];
+const wX=i=>MAINX.includes(i)?20:11, wY=j=>MAINY.includes(j)?20:11;
+const riverY=x=>660+85*Math.sin(x/240+0.6);
+const DIAG={a:[130,1140],b:[1100,70]};
+const USER={x:830,y:498};
+const HOME={x:560,y:470};
+const HOME_RADIUS_KM=3, HOME_R=HOME_RADIUS_KM*1000/MPU;
+function segDist(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy);t=Math.max(0,Math.min(1,t));return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));}
+const diagDist=(x,y)=>segDist(x,y,DIAG.a[0],DIAG.a[1],DIAG.b[0],DIAG.b[1]);
+
+function buildWorld(){
+  const r=rng(7); let s='';
+  s+=`<rect width="${W}" height="${H}" fill="#BDB29D"/>`;
+  const bcols=['#B5A890','#C0B49C','#AA9D86','#BCAF98'];
+  for(let i=0;i<XS.length-1;i++)for(let j=0;j<YS.length-1;j++){
+    const l=XS[i]+wX(i)/2+3, rt=XS[i+1]-wX(i+1)/2-3, t=YS[j]+wY(j)/2+3, b=YS[j+1]-wY(j+1)/2-3;
+    const w=rt-l,h=b-t,cx=l+w/2,cy=t+h/2;
+    const nearRiver=Math.abs(cy-riverY(cx))<105, nearDiag=diagDist(cx,cy)<95;
+    s+=`<rect x="${l}" y="${t}" width="${w}" height="${h}" rx="7" fill="#D6CEBB"/>`;
+    if(r()<0.17 && !nearRiver && !nearDiag){
+      s+=`<rect x="${l+2}" y="${t+2}" width="${w-4}" height="${h-4}" rx="9" fill="#A5B78F"/>`;
+      s+=`<path d="M${l+10} ${t+h*0.7} Q${cx} ${t+h*0.2} ${rt-10} ${t+h*0.4}" fill="none" stroke="#D9DEC8" stroke-width="5" stroke-linecap="round"/>`;
+      const n=7+Math.floor(r()*6);
+      for(let k=0;k<n;k++){const tx=l+14+r()*(w-28), ty=t+14+r()*(h-28), tr=6+r()*5;
+        s+=`<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="${tr.toFixed(1)}" fill="#7F9A69"/><circle cx="${(tx-1.5).toFixed(1)}" cy="${(ty-1.5).toFixed(1)}" r="${(tr*.55).toFixed(1)}" fill="#93AD7C"/>`;}
+    } else {
+      const nx=Math.max(1,Math.round(w/62)), ny=Math.max(1,Math.round(h/55));
+      for(let a=0;a<nx;a++)for(let c=0;c<ny;c++){
+        const cw=w/nx, ch=h/ny, sh=r()*8, sv=r()*8;
+        const bx=l+a*cw+4+sh/2, by=t+c*ch+4+sv/2, bw=cw-8-sh, bh=ch-8-sv;
+        if(r()<0.1) continue;
+        const mx=bx+bw/2,my=by+bh/2;
+        if(Math.abs(my-riverY(mx))<44) continue;
+        if(diagDist(mx,my)<24+Math.max(bw,bh)*0.38) continue;
+        s+=`<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="2" fill="${bcols[Math.floor(r()*4)]}"/>`;
+      }
+    }
+  }
+  // river
+  let d='';for(let x=-20;x<=W+20;x+=20)d+=(x===-20?'M':'L')+x+' '+riverY(x).toFixed(1)+' ';
+  s+=`<path d="${d}" fill="none" stroke="#7F8B94" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>`;
+  s+=`<path d="${d}" fill="none" stroke="#9FB0BC" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>`;
+  // roads: casings then fills
+  const roads=[];
+  XS.forEach((x,i)=>roads.push({x1:x,y1:-10,x2:x,y2:H+10,w:wX(i),main:MAINX.includes(i)}));
+  YS.forEach((y,j)=>roads.push({x1:-10,y1:y,x2:W+10,y2:y,w:wY(j),main:MAINY.includes(j)}));
+  roads.push({x1:DIAG.a[0],y1:DIAG.a[1],x2:DIAG.b[0],y2:DIAG.b[1],w:14,main:true});
+  s+=`<mask id="rm" maskUnits="userSpaceOnUse" x="-50" y="-50" width="${W+100}" height="${H+100}"><rect x="-50" y="-50" width="${W+100}" height="${H+100}" fill="#fff"/><path d="${d}" fill="none" stroke="#000" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/></mask><g mask="url(#rm)">`;
+  roads.forEach(o=>s+=`<line x1="${o.x1}" y1="${o.y1}" x2="${o.x2}" y2="${o.y2}" stroke="#A39683" stroke-width="${o.w+4}" stroke-linecap="round"/>`);
+  roads.forEach(o=>s+=`<line x1="${o.x1}" y1="${o.y1}" x2="${o.x2}" y2="${o.y2}" stroke="#F1ECE0" stroke-width="${o.w}" stroke-linecap="round"/>`);
+  roads.filter(o=>o.main).forEach(o=>s+=`<line x1="${o.x1}" y1="${o.y1}" x2="${o.x2}" y2="${o.y2}" stroke="#D3CAB5" stroke-width="1.6" stroke-dasharray="9 9"/>`);
+  s+=`</g>`;
+  // bridges (only a few crossings)
+  const br=(x1,y1,x2,y2,w)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#7F8B94" stroke-width="${w+7}"/><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#F1ECE0" stroke-width="${w}"/>`;
+  [1,3,5,7].forEach(i=>{const x=XS[i],cy=riverY(x);s+=br(x,(cy-42).toFixed(1),x,(cy+42).toFixed(1),wX(i));});
+  {let best=1e9,bp=null;for(let t=0;t<=1;t+=0.001){const px=DIAG.a[0]+(DIAG.b[0]-DIAG.a[0])*t,py=DIAG.a[1]+(DIAG.b[1]-DIAG.a[1])*t,f=Math.abs(py-riverY(px));if(f<best){best=f;bp=[px,py];}}
+   const dx=DIAG.b[0]-DIAG.a[0],dy=DIAG.b[1]-DIAG.a[1],L=Math.hypot(dx,dy),ux=dx/L*52,uy=dy/L*52;
+   s+=br((bp[0]-ux).toFixed(1),(bp[1]-uy).toFixed(1),(bp[0]+ux).toFixed(1),(bp[1]+uy).toFixed(1),14);}
+  // labels
+  const lab=(x,y,t,rot)=>`<text transform="translate(${x} ${y}) rotate(${rot})" text-anchor="middle" font-size="11" font-weight="700" fill="#6A6D71" font-family="Trebuchet MS,sans-serif" letter-spacing="1.5">${t}</text>`;
+  s+=lab(640,330,'CENTRAL AVE',-90)+lab(1010,950,'MARKET ST',-90)+lab(330,564,'GRAND BLVD',0)+lab(1250,884,'UNION BLVD',0)+lab(830,300,'OAK STREET',-90);
+  s+=`<g id="homeLayer"></g>`;
+  $('#world').innerHTML=s;
+}
+
+/* lockers */
+const BRANDS=['Mondial Relay','Vinted Go','Amazon Hub Locker','Lock Tec','InPost','DHL Packstation','Mondial Relay','Amazon Hub Locker','Vinted Go','Lock Tec'];
+const SIZES=[{key:'s',name:'Small',dim:'8 × 38 × 64 cm',h:10},{key:'m',name:'Medium',dim:'19 × 38 × 64 cm',h:21},{key:'b',name:'Big',dim:'41 × 38 × 64 cm',h:36}];
+const LK=[];
+(function genLockers(){
+  const r=rng(2024);
+  const add=(x,y)=>{
+    const full=r()<0.22, few=r()<0.12;
+    let s=Math.floor(r()*8), m=Math.floor(r()*6), b=Math.floor(r()*4);
+    if(full){s=m=b=0}else if(few){s=0;m=0;b=1}
+    LK.push({id:LK.length,brand:BRANDS[Math.floor(r()*BRANDS.length)],x,y,s,m,b});
+  };
+  [[856,534],[804,426],[666,534]].forEach(p=>add(p[0],p[1]));
+  let tries=0;
+  while(LK.length<46&&tries++<5000){
+    const i=Math.floor(r()*XS.length), j=Math.floor(r()*YS.length);
+    const x=XS[i]+(r()<.5?-26:26), y=YS[j]+(r()<.5?-26:26);
+    if(x<25||x>W-25||y<50||y>H-10) continue;
+    if(Math.abs(y-riverY(x))<58) continue;
+    if(LK.some(l=>Math.hypot(l.x-x,l.y-y)<75)) continue;
+    add(x,y);
+  }
+})();
+const km=l=>Math.hypot(l.x-USER.x,l.y-USER.y)*MPU/1000;
+const kmHome=l=>Math.hypot(l.x-HOME.x,l.y-HOME.y)*MPU/1000;
+const fmtKm=v=>v.toFixed(2)+' km';
+const total=l=>l.s+l.m+l.b;
+const SORTED=[...LK].sort((a,b)=>km(a)-km(b));
+
+/* ---------- state ---------- */
+const KEY='locke_demo_v1';
+let DB={accounts:{},current:null};
+try{const t=localStorage.getItem(KEY);if(t)DB=JSON.parse(t);}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}};
+const user=()=>DB.current?DB.accounts[DB.current]||null:null;
+const S={view:'map',lockerId:null,lockerFrom:'map',size:null,highlight:null,shown:5};
+
+function nextMidnight(now){const d=new Date(now);return new Date(d.getFullYear(),d.getMonth(),d.getDate()+1).getTime();}
+function fmtCd(ms){ms=Math.max(0,ms);const t=Math.ceil(ms/1000),m=Math.floor(t/60),s=t%60;return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+function fmtDur(ms){ms=Math.max(0,ms);const m=Math.ceil(ms/MIN),d=Math.floor(m/1440),h=Math.floor((m%1440)/60),mm=m%60;
+  return (d?d+'d ':'')+(h||d?h+'h ':'')+mm+'m';}
+function fmtTime(ts){return new Date(ts).toLocaleString('en-GB',{weekday:'short',hour:'2-digit',minute:'2-digit'});}
+
+function failRes(u){
+  const r=u.reservation; if(!r)return;
+  const l=LK[r.id]; if(l)l[r.size]++;
+  const now=Date.now(); const score=u.penalty||0;
+  const wait=score*DAY+(nextMidnight(now)-now);
+  u.pending.push({at:now+wait});
+  u.penalty=score+1; u.lastFailure=now; u.reservation=null;
+}
+function succeedRes(u){u.points+=1;u.reservation=null;}
+
+function tick(){
+  const u=user(),now=Date.now();let ch=false;
+  if(u){
+    if(u.penalty>0&&u.lastFailure&&now-u.lastFailure>=30*DAY){u.penalty=0;ch=true;}
+    const due=u.pending.filter(p=>p.at<=now);
+    if(due.length){u.pending=u.pending.filter(p=>p.at>now);u.points+=due.length;ch=true;toast('Your point is back. You can reserve again.');}
+    if(u.reservation&&u.reservation.end<=now){failRes(u);ch=true;toast('Time is up: parcel not delivered. Point lost.');}
+  }
+  if(ch){save();refreshAll();}
+  $$('[data-cd]').forEach(el=>el.textContent=fmtCd(+el.dataset.cd-now));
+  $$('[data-until]').forEach(el=>el.textContent=fmtDur(+el.dataset.until-now));
+}
+
+/* ---------- toast & modal ---------- */
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3200);}
+function openModal(html){const m=$('#modal');m.innerHTML=`<div class="sheet">${html}</div>`;m.classList.add('show');}
+function closeModal(){$('#modal').classList.remove('show');}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+
+function loginModal(){
+  openModal(`<h2>Log in or sign up</h2>
+   <p class="small">An account is required to reserve a locker. New accounts get 1 free point.</p>
+   <label class="field">Full name<input id="f-name" autocomplete="name" placeholder="Alex Martin"></label>
+   <label class="field">Email<input id="f-email" type="email" autocomplete="email" placeholder="alex@email.com"></label>
+   <label class="field">Home address<input id="f-addr" placeholder="12 Oak Street"></label>
+   <p class="small" style="margin-top:8px">Your home address sets where you can book: lockers must be within 3 km. (Preview: home is simulated on the map.)</p>
+   <div class="err" id="f-err"></div>
+   <button class="btn primary" data-act="doLogin">Continue</button>
+   <button class="btn secondary" data-act="closeModal">Cancel</button>`);
+}
+function profileModal(){
+  const u=user();
+  openModal(`<h2>${esc(u.name)}</h2>
+   <p class="small">${esc(u.email)}</p>
+   <div class="card" style="margin-top:12px">
+     <div class="kv"><span>Home</span><b>${esc(u.address)}</b></div>
+     <div class="kv"><span>Booking range</span><b>${HOME_RADIUS_KM} km from home</b></div>
+     <div class="kv"><span>Points</span><b>${u.points}</b></div>
+     <div class="kv"><span>Penalty score</span><b>${u.penalty||0}</b></div>
+   </div>
+   <button class="btn primary" data-act="logout">Log out</button>
+   <button class="btn danger" data-act="resetDemo">Reset demo data</button>
+   <button class="btn secondary" data-act="closeModal">Close</button>`);
+}
+function doLogin(){
+  const name=$('#f-name').value.trim(),email=$('#f-email').value.trim().toLowerCase(),addr=$('#f-addr').value.trim();
+  if(!name||!/^\S+@\S+\.\S+$/.test(email)){$('#f-err').textContent='Enter your name and a valid email.';return;}
+  let a=DB.accounts[email];
+  if(!a){a=DB.accounts[email]={name,email,address:addr||'12 Oak Street',points:1,pending:[],penalty:0,lastFailure:null,reservation:null};toast('Welcome to Lock-E! 1 free point added.');}
+  else toast('Welcome back, '+a.name+'.');
+  DB.current=email;save();closeModal();refreshAll();
+}
+
+/* ---------- header / nav / banner ---------- */
+function updateHeader(){
+  const u=user();
+  $('#authSlot').innerHTML=u?`<button class="avatar" data-act="profile" aria-label="Profile">${esc(u.name.trim()[0]||'?').toUpperCase()}</button>`
+    :`<button class="loginbtn" data-act="login">${I.user}Log in</button>`;
+}
+function updateBanner(){
+  const u=user(),b=$('#banner');
+  if(u&&u.reservation){
+    const l=LK[u.reservation.id],sz=SIZES.find(x=>x.key===u.reservation.size);
+    b.innerHTML=`<span>Reserved: ${esc(l.brand)} (${sz.name})</span><b data-cd="${u.reservation.end}">${fmtCd(u.reservation.end-Date.now())}</b>`;
+    b.classList.add('show');
+  } else b.classList.remove('show');
+}
+$('#tabMap').innerHTML=I.map+'<span>Map</span>';
+$('#tabSearch').innerHTML=I.search;
+$('#tabPoints').innerHTML=I.coin+'<span>Points</span>';
+$('[data-act=zoomIn]').innerHTML=I.plus;$('[data-act=zoomOut]').innerHTML=I.minus;$('[data-act=locate]').innerHTML=I.locate;
+
+/* ---------- map engine ---------- */
+const M={k:1,tx:0,ty:0,w:0,h:0,init:false,minK:.5,maxK:3.2};
+const mapEl=$('#v-map'),mk=$('#mk');
+let markerEls=[],userEl,homeEl;
+function markerSVG(l){
+  return `<ellipse cx="0" cy="1" rx="10" ry="4" fill="#000" opacity=".3"/>
+  <path d="M-20,-40 a6 6 0 0 1 6 -6 h28 a6 6 0 0 1 6 6 v24 a6 6 0 0 1 -6 6 h-8 l-6 10 l-6 -10 h-8 a6 6 0 0 1 -6 -6z" fill="#292220" stroke="#F5F0E4" stroke-width="3.4" stroke-linejoin="round"/>
+  <g fill="#CDC5B2"><rect x="-13" y="-40" width="7" height="9" rx="1.5"/><rect x="-3.5" y="-40" width="7" height="9" rx="1.5"/><rect x="6" y="-40" width="7" height="9" rx="1.5"/>
+  <rect x="-13" y="-29" width="7" height="9" rx="1.5"/><rect x="-3.5" y="-29" width="7" height="9" rx="1.5"/><rect x="6" y="-29" width="7" height="9" rx="1.5" fill="#9E8E79"/></g>
+  <circle class="bd" cx="19" cy="-47" r="13.5" stroke="#F5F0E4" stroke-width="3"/>
+  <text class="bn" x="19" y="-41.5" text-anchor="middle" font-size="16" font-weight="800" fill="#fff" font-family="Trebuchet MS,sans-serif"></text>`;
+}
+function buildMarkers(){
+  mk.innerHTML='';markerEls=[];
+  const NS='http://www.w3.org/2000/svg';
+  LK.forEach(l=>{
+    const g=document.createElementNS(NS,'g');g.setAttribute('class','mk');g.dataset.id=l.id;g.innerHTML=markerSVG(l);
+    mk.appendChild(g);markerEls[l.id]=g;
+  });
+  homeEl=document.createElementNS(NS,'g');homeEl.setAttribute('style','pointer-events:none');
+  homeEl.innerHTML=`<circle r="15" fill="#60453E" stroke="#CDC5B2" stroke-width="3"/><path d="M-7 1 0 -6 7 1M-5 0v7h10v-7" fill="none" stroke="#CDC5B2" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  mk.appendChild(homeEl);
+  userEl=document.createElementNS(NS,'g');userEl.setAttribute('style','pointer-events:none');
+  userEl.innerHTML=`<circle r="10" fill="#2f6fed" opacity=".3"><animate attributeName="r" values="10;28;10" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".4;0;.4" dur="2.2s" repeatCount="indefinite"/></circle><circle r="9" fill="#2f6fed" stroke="#fff" stroke-width="3.5"/>`;
+  mk.appendChild(userEl);
+  refreshMarkers();
+}
+function refreshMarkers(){
+  LK.forEach(l=>{
+    const g=markerEls[l.id];if(!g)return;const n=total(l);
+    g.querySelector('.bd').setAttribute('fill',n>0?'#1E9C45':'#6A6D71');
+    g.querySelector('.bn').textContent=n;
+    g.style.opacity=(S.highlight!==null&&S.highlight!==l.id)?'.22':'1';
+  });
+  if(S.highlight!==null&&markerEls[S.highlight])mk.insertBefore(markerEls[S.highlight],homeEl);
+  updateMarkers();
+}
+function updateMarkers(){
+  const sc=Math.min(1.5,.95+.5*M.k);
+  LK.forEach(l=>{
+    const g=markerEls[l.id];if(!g)return;
+    const x=l.x*M.k+M.tx,y=l.y*M.k+M.ty;
+    const vis=x>-90&&x<M.w+90&&y>-30&&y<M.h+120;
+    g.style.display=vis?'':'none';
+    if(vis)g.setAttribute('transform',`translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(S.highlight===l.id?sc*1.3:sc).toFixed(2)})`);
+  });
+  userEl.setAttribute('transform',`translate(${USER.x*M.k+M.tx} ${USER.y*M.k+M.ty})`);
+  const u=user();
+  homeEl.style.display=u?'':'none';
+  homeEl.setAttribute('transform',`translate(${HOME.x*M.k+M.tx} ${HOME.y*M.k+M.ty})`);
+}
+function clampT(k,tx,ty){
+  k=Math.max(M.minK,Math.min(M.maxK,k));
+  tx=Math.min(0,Math.max(M.w-W*k,tx));ty=Math.min(0,Math.max(M.h-H*k,ty));
+  return{k,tx,ty};
+}
+function applyT(){
+  const c=clampT(M.k,M.tx,M.ty);M.k=c.k;M.tx=c.tx;M.ty=c.ty;
+  $('#world').setAttribute('transform',`translate(${M.tx} ${M.ty}) scale(${M.k})`);
+  updateMarkers();
+}
+function measure(){
+  const r=mapEl.getBoundingClientRect();if(!r.width)return false;
+  M.w=r.width;M.h=r.height;M.minK=Math.max(M.w/W,M.h/H);return true;
+}
+let anim=null;
+function stopAnim(){if(anim){cancelAnimationFrame(anim);anim=null;}}
+function animateTo(k,wx,wy,ms=450){
+  stopAnim();
+  const t=clampT(k,M.w/2-wx*k,M.h*0.4-wy*k);
+  const f={k:M.k,tx:M.tx,ty:M.ty},t0=performance.now();
+  (function step(now){
+    let p=Math.min(1,(now-t0)/ms);p=1-Math.pow(1-p,3);
+    M.k=f.k+(t.k-f.k)*p;M.tx=f.tx+(t.tx-f.tx)*p;M.ty=f.ty+(t.ty-f.ty)*p;applyT();
+    if(p<1)anim=requestAnimationFrame(step);else anim=null;
+  })(t0);
+}
+function zoomRaw(cx,cy,f){
+  const nk=Math.max(M.minK,Math.min(M.maxK,M.k*f));
+  const wx=(cx-M.tx)/M.k,wy=(cy-M.ty)/M.k;
+  M.k=nk;M.tx=cx-wx*nk;M.ty=cy-wy*nk;
+}
+function zoomBtn(f){stopAnim();zoomRaw(M.w/2,M.h/2,f);applyT();}
+function onMapShow(){
+  if(!measure()){requestAnimationFrame(onMapShow);return;}
+  if(!M.init){M.init=true;M.k=Math.max(M.minK,0.95);M.tx=M.w/2-USER.x*M.k;M.ty=M.h*0.45-USER.y*M.k;applyT();}
+  else applyT();
+  refreshMarkers();renderMapCard();
+  if(S.highlight!==null){const l=LK[S.highlight];animateTo(1.7,l.x,l.y);}
+}
+function renderMapCard(){
+  const c=$('#mapCard');
+  if(S.highlight===null){c.classList.remove('show');return;}
+  const l=LK[S.highlight];
+  c.innerHTML=`<div class="t"><b>${esc(l.brand)}</b><span>${fmtKm(km(l))} from you · <span style="color:#7fd08f">${total(l)} available</span></span></div>
+    <button class="chipbtn" data-act="openLocker" data-id="${l.id}" data-from="map">Details</button>
+    <button class="xbtn" data-act="clearHl" aria-label="Clear highlight">${I.x}</button>`;
+  c.classList.add('show');
+}
+function renderHomeLayer(){
+  const g=$('#homeLayer');if(!g)return;
+  const u=user();
+  $('#legend').classList.toggle('show',!!u&&S.view==='map');
+  if(!u){g.innerHTML='';return;}
+  const R=HOME_R,cx=HOME.x,cy=HOME.y;
+  g.innerHTML=`<path fill-rule="evenodd" fill="#292220" fill-opacity=".2" d="M0 0H${W}V${H}H0Z M${cx-R} ${cy} a${R} ${R} 0 1 0 ${2*R} 0 a${R} ${R} 0 1 0 ${-2*R} 0Z"/>
+  <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#60453E" stroke-width="3" stroke-dasharray="14 10" opacity=".8"/>`;
+}
+
+/* map interactions */
+const ptrs=new Map();let moved=false,startPt=null,lastDist=0,lastC=null;
+mapEl.addEventListener('pointerdown',e=>{
+  if(e.target.closest('.ui'))return;
+  stopAnim();
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===1){moved=false;startPt={x:e.clientX,y:e.clientY};}
+  if(ptrs.size===2){moved=true;const[a,b]=[...ptrs.values()];lastDist=Math.hypot(a.x-b.x,a.y-b.y)||1;lastC={x:(a.x+b.x)/2,y:(a.y+b.y)/2};}
+});
+window.addEventListener('pointermove',e=>{
+  const p=ptrs.get(e.pointerId);if(!p)return;
+  if(ptrs.size===1){
+    const dx=e.clientX-p.x,dy=e.clientY-p.y;
+    if(!moved&&Math.hypot(e.clientX-startPt.x,e.clientY-startPt.y)>6)moved=true;
+    p.x=e.clientX;p.y=e.clientY;
+    if(moved){M.tx+=dx;M.ty+=dy;applyT();}
+  }else if(ptrs.size===2){
+    p.x=e.clientX;p.y=e.clientY;
+    const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y)||1;
+    const c={x:(a.x+b.x)/2,y:(a.y+b.y)/2},r=mapEl.getBoundingClientRect();
+    zoomRaw(c.x-r.left,c.y-r.top,d/lastDist);
+    M.tx+=c.x-lastC.x;M.ty+=c.y-lastC.y;lastDist=d;lastC=c;applyT();
+  }
+});
+function endPtr(e,cancel){
+  if(!ptrs.has(e.pointerId))return;
+  const wasSingle=ptrs.size===1;
+  ptrs.delete(e.pointerId);
+  if(wasSingle&&!moved&&!cancel){
+    const el=e.target.closest&&e.target.closest('.mk');
+    if(el)openLocker(+el.dataset.id,'map');
+  }
+  if(ptrs.size===1)moved=true;
+}
+window.addEventListener('pointerup',e=>endPtr(e,false));
+window.addEventListener('pointercancel',e=>endPtr(e,true));
+mapEl.addEventListener('wheel',e=>{
+  e.preventDefault();stopAnim();
+  const r=mapEl.getBoundingClientRect();
+  zoomRaw(e.clientX-r.left,e.clientY-r.top,e.deltaY<0?1.18:1/1.18);applyT();
+},{passive:false});
+window.addEventListener('resize',()=>{if(S.view==='map'&&measure())applyT();});
+
+/* ---------- views ---------- */
+function renderSearch(){
+  const list=SORTED.slice(0,S.shown),more=S.shown<SORTED.length;
+  $('#v-search').innerHTML=`<div class="pagehead"><h2>Nearby lockers</h2><p class="muted">Closest to your position</p></div>`+
+  list.map(l=>{const n=total(l);return `<div class="item"><button class="itemMain" data-act="openLocker" data-id="${l.id}" data-from="search">
+    <div class="ico">${I.locker}</div>
+    <div class="mid"><div class="brand">${esc(l.brand)}</div><div class="dist">${fmtKm(km(l))}</div></div>
+    <div class="cnt"><b class="${n?'green':'red'}">${n}</b><span>available</span></div></button>
+    <button class="mapBtn" data-act="showOnMapId" data-id="${l.id}" aria-label="Show on map">${I.pin}</button></div>`;}).join('')+
+  `<button class="btn soft moreBtn" data-act="more" ${more?'':'disabled'}>${more?'Show more':'No more lockers nearby'}</button>`;
+}
+function openLocker(id,from){
+  S.lockerId=id;S.lockerFrom=from||'search';
+  const l=LK[id];S.size=(SIZES.find(z=>l[z.key]>0)||{}).key||null;
+  go('locker');
+}
+function renderLocker(){
+  const l=LK[S.lockerId],u=user(),n=total(l);
+  if(S.size&&l[S.size]<1)S.size=(SIZES.find(z=>l[z.key]>0)||{}).key||null;
+  let homeLine;
+  if(u){const dh=kmHome(l),ok=dh<=HOME_RADIUS_KM;
+    homeLine=`<div class="note">${fmtKm(dh)} from your home: <b class="${ok?'green':'red'}">${ok?'within booking range':'too far to reserve (max 3 km)'}</b></div>`;}
+  else homeLine=`<div class="note">Log in to check if this locker is within 3 km of your home.</div>`;
+  const sel=SIZES.find(z=>z.key===S.size);
+  $('#v-locker').innerHTML=`<button class="back" data-act="back">${I.back}Back</button>
+   <div class="lhead"><div><h2>${esc(l.brand)}</h2><div class="muted">${fmtKm(km(l))} from you</div></div>
+     <div class="tot"><b class="${n?'green':'red'}">${n}</b><span>available</span></div></div>
+   <button class="btn secondary" data-act="showMap" style="margin-bottom:14px">${I.pin}Show on map</button>
+   <div class="card"><h3>Choose a size</h3><div class="sizes">`+
+   SIZES.map(z=>`<button class="size ${S.size===z.key?'sel':''}" data-act="pickSize" data-size="${z.key}" ${l[z.key]?'':'disabled'}>
+      <div class="shapebox"><div class="shape" style="height:${z.h+4}px"></div></div>
+      <div class="mid"><b>${z.name}</b><span>${z.dim}</span></div>
+      <div class="n ${l[z.key]?'green':'red'}">${l[z.key]}<small>left</small></div></button>`).join('')+
+   `</div></div>
+   <div class="note">Dimensions are height × width × depth, based on standard parcel locker compartments.</div>
+   ${homeLine}
+   <button class="btn primary" data-act="toReserve" ${S.size?'':'disabled'}>${S.size?'Reserve a '+sel.name+' locker':'No compartment available'}</button>`;
+}
+function checksFor(l,key){
+  const u=user(),dh=kmHome(l);
+  return[
+   {ok:!!u,t:'Logged in',d:u?esc(u.name):'Account required to reserve'},
+   {ok:!!u&&u.points>=1,t:'1 point available',d:u?(u.points+' point'+(u.points===1?'':'s')+' in your balance'):'Log in to get 1 free point'},
+   {ok:!!u&&dh<=HOME_RADIUS_KM,t:'Within 3 km of your home',d:u?fmtKm(dh)+' from home':'Log in to check'},
+   {ok:!(u&&u.reservation),t:'No active reservation',d:u&&u.reservation?'Finish your current reservation first':'You can hold one locker at a time'},
+   {ok:l[key]>0,t:'Compartment available',d:l[key]+' left'}
+  ];
+}
+function renderReserve(){
+  const l=LK[S.lockerId],z=SIZES.find(x=>x.key===S.size);
+  if(!z){go('locker');return;}
+  const u=user(),cs=checksFor(l,z.key),allOk=cs.every(c=>c.ok);
+  $('#v-reserve').innerHTML=`<button class="back" data-act="back">${I.back}Back</button>
+   <div class="pagehead"><h2>Reserve a locker</h2></div>
+   <div class="card">
+     <div class="kv"><span>Locker</span><b>${esc(l.brand)}</b></div>
+     <div class="kv"><span>Distance</span><b>${fmtKm(km(l))}</b></div>
+     <div class="kv"><span>Size</span><b>${z.name} (${z.dim})</b></div>
+     <div class="kv"><span>Hold time</span><b>30 minutes</b></div>
+     <div class="kv"><span>Cost</span><b>1 point</b></div>
+   </div>
+   <div class="card"><h3>Requirements</h3><ul class="checks">`+
+   cs.map(c=>`<li><span class="st ${c.ok?'ok':'ko'}">${c.ok?I.check:I.x}</span><div>${c.t}<small>${c.d}</small></div></li>`).join('')+
+   `</ul></div>
+   <p class="small" style="margin:0 2px 14px">If your parcel arrives within 30 minutes, you get your point back. If not, you lose the point until midnight (plus 24 h for each penalty point you already have) and your penalty score goes up by 1.</p>`+
+   (u?`<button class="btn primary" data-act="confirmRes" ${allOk?'':'disabled'}>Confirm reservation (−1 point)</button>`
+      :`<button class="btn primary" data-act="login">${I.user}Log in to reserve</button>`);
+}
+function confirmReserve(){
+  const u=user(),l=LK[S.lockerId];if(!u)return;
+  if(!checksFor(l,S.size).every(c=>c.ok)){toast('Requirements not met.');renderReserve();return;}
+  u.points-=1;l[S.size]-=1;
+  u.reservation={id:l.id,size:S.size,start:Date.now(),end:Date.now()+30*MIN};
+  save();refreshAll();toast('Locker reserved for 30 minutes.');
+  S.lockerFrom='points';go('points');
+}
+function renderPoints(){
+  const u=user(),now=Date.now(),el=$('#v-points');
+  if(!u){
+    el.innerHTML=`<div class="card pts"><div class="coin">${I.coin}</div><div class="num">0</div><div class="lbl">Log in to get your free point</div></div>
+    <button class="btn primary" data-act="login">${I.user}Log in or sign up</button>
+    <div class="card" style="margin-top:14px"><h3>How points work</h3>${howList()}</div>`;return;
+  }
+  let h=`<div class="card pts"><div class="coin">${I.coin}</div><div class="num">${u.points}</div><div class="lbl">point${u.points===1?'':'s'} left</div></div>`;
+  if(u.reservation){
+    const l=LK[u.reservation.id],z=SIZES.find(x=>x.key===u.reservation.size);
+    h+=`<div class="rcard"><h3>Active reservation</h3><div>${esc(l.brand)} · ${z.name} · ${fmtKm(km(l))}</div>
+      <div class="time" data-cd="${u.reservation.end}">${fmtCd(u.reservation.end-now)}</div>
+      <div class="small">Your parcel must arrive before the timer ends to get your point back.</div>
+      <div class="row"><button class="btn soft" data-act="simOk">Demo: parcel arrived</button><button class="btn ghost" data-act="simFail">Demo: parcel late</button></div></div>`;
+  }
+  u.pending.forEach(p=>{
+    h+=`<div class="card"><h3>Point on hold</h3><div class="small">Returns at <b>${fmtTime(p.at)}</b> (in <span class="cd" data-until="${p.at}">${fmtDur(p.at-now)}</span>).</div></div>`;
+  });
+  const sc=u.penalty||0,nextWait=sc*DAY+(nextMidnight(now)-now),backAt=now+nextWait;
+  const rows=[0,1,2,3].map(n=>{
+    const w=n===0?'Point back at midnight':n===3?'Midnight + score × 24 h':'Midnight + '+(n*24)+' h';
+    const lbl=n===3?'Score 3+':'Score '+n, cur=n===3?sc>=3:sc===n;
+    return `<div class="prow ${cur?'cur':''}"><span>${lbl}</span><b>${w}</b></div>`;}).join('');
+  h+=`<div class="card"><h3>Penalty score</h3>
+    <div class="pscore"><div class="pnum ${sc?'red':'green'}">${sc}</div>
+      <div class="small" style="margin:0">${sc?'You missed '+sc+' reserved parcel'+(sc>1?'s':'')+' recently.':'Clean record: no missed parcels.'}</div></div>
+    <p class="small"><b>What is it?</b> A strike counter. It goes up by 1 each time a parcel you reserved a locker for does not arrive within the 30 minutes.</p>
+    <p class="small"><b>Why does it matter?</b> When you miss a parcel, you lose your point until a later time. The higher your score was before that miss, the longer you wait:</p>
+    <div class="ptable">${rows}</div>
+    <p class="small"><b>If you miss your next parcel:</b> your point comes back on <b>${fmtTime(backAt)}</b> (in <span class="cd" data-until="${backAt}">${fmtDur(nextWait)}</span>) and your score becomes ${sc+1}.</p>
+    <p class="small"><b>How to get back to 0:</b> stay 30 days without a missed parcel${sc&&u.lastFailure?` (<span class="cd" data-until="${u.lastFailure+30*DAY}">${fmtDur(u.lastFailure+30*DAY-now)}</span> left)`:''}.</p></div>
+    <div class="card"><h3>How points work</h3>${howList()}</div>`;
+  el.innerHTML=h;
+}
+const howList=()=>`<ol class="how"><li>Every account starts with 1 point.</li><li>Reserving a locker costs 1 point and holds it for 30 minutes.</li><li>Parcel arrives in time: your point comes back.</li><li>Parcel doesn't arrive: the point returns at midnight and your penalty score goes up.</li><li>Lockers must be within 3 km of your home.</li></ol>`;
+
+/* ---------- navigation ---------- */
+const RENDER={search:renderSearch,points:renderPoints,locker:renderLocker,reserve:renderReserve,map:onMapShow};
+function go(v){
+  S.view=v;
+  $$('.view').forEach(x=>x.classList.toggle('active',x.id==='v-'+v));
+  const tab=['map','search','points'].includes(v)?v:(S.lockerFrom||'search');
+  $$('[data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  $('#legend').classList.toggle('show',!!user()&&v==='map');
+  RENDER[v]();
+  if(v!=='map')$('#v-'+v).scrollTop=0;
+}
+function refreshAll(){
+  updateHeader();updateBanner();renderHomeLayer();refreshMarkers();
+  if(S.view!=='map'&&RENDER[S.view])RENDER[S.view]();
+  if(S.view==='map')renderMapCard();
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-act]');if(!t)return;
+  const a=t.dataset.act,u=user();
+  switch(a){
+    case'tab':if(t.dataset.tab==='map')S.highlight=null;go(t.dataset.tab);break;
+    case'login':loginModal();break;
+    case'doLogin':doLogin();break;
+    case'closeModal':closeModal();break;
+    case'profile':profileModal();break;
+    case'logout':DB.current=null;save();closeModal();refreshAll();toast('Logged out.');break;
+    case'resetDemo':DB={accounts:{},current:null};save();LK.forEach(l=>{});closeModal();toast('Demo data reset. Reloading…');setTimeout(()=>location.reload(),700);break;
+    case'home':S.highlight=null;go('map');break;
+    case'showOnMapId':S.highlight=+t.dataset.id;S.lockerFrom='map';go('map');break;
+    case'goPoints':S.lockerFrom='points';go('points');break;
+    case'more':S.shown+=5;renderSearch();break;
+    case'openLocker':openLocker(+t.dataset.id,t.dataset.from||'search');break;
+    case'back':go(S.view==='reserve'?'locker':S.lockerFrom);break;
+    case'showMap':S.highlight=S.lockerId;S.lockerFrom='map';go('map');break;
+    case'clearHl':S.highlight=null;refreshMarkers();renderMapCard();break;
+    case'pickSize':S.size=t.dataset.size;renderLocker();break;
+    case'toReserve':if(S.size)go('reserve');break;
+    case'confirmRes':confirmReserve();break;
+    case'zoomIn':zoomBtn(1.35);break;
+    case'zoomOut':zoomBtn(1/1.35);break;
+    case'locate':S.highlight=null;refreshMarkers();renderMapCard();animateTo(1.2,USER.x,USER.y);break;
+    case'simOk':if(u&&u.reservation){succeedRes(u);save();refreshAll();toast('Parcel arrived in time. Your point is back.');}break;
+    case'simFail':if(u&&u.reservation){failRes(u);save();refreshAll();toast('Parcel late. Point lost, penalty score +1.');}break;
+  }
+});
+
+/* ---------- init ---------- */
+buildWorld();buildMarkers();
+updateHeader();updateBanner();renderHomeLayer();
+onMapShow();
+setInterval(tick,1000);tick();
+})();
+</script>
+</body>
+</html>
