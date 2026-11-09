@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+    />
+    <title>Lock-E</title>
+
+    <!--############################################################################-->
+    <style>
+      :root {
+        --bg: #f3ebe2;
+        --surface: #fbf7f2;
+        --line: #dccfc1;
+        --text: #4a3428;
+        --muted: #8b6b55;
+        --accent: #6f4e37;
+        --accent-dark: #522005;
+        --alert: #b3402a;
+        --nav-h: 76px;
+        --header-h: 64px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 18px;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      h1 {
+        font-size: 28px;
+        margin-bottom: 20px;
+      }
+      p {
+        color: var(--muted);
+        line-height: 1.5;
+        margin-bottom: 12px;
+      }
+
+      /* ---------- En-tête ---------- */
+      header {
+        height: var(--header-h);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+      }
+      .logo {
+        font-size: 26px;
+        font-weight: bold;
+        color: var(--accent);
+      }
+
+      /* ---------- Vues ---------- */
+      .view {
+        display: none;
+        height: calc(100dvh - var(--nav-h) - var(--header-h));
+        overflow-y: auto;
+        padding: 24px 20px;
+      }
+      .view.active {
+        display: block;
+      }
+
+      /* ---------- Liste ---------- */
+      #locker-list {
+        list-style: none;
+      }
+      #locker-list li {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 14px;
+      }
+
+      /* ---------- Carte ---------- */
+      #view-map {
+        position: relative;
+        padding: 0;
+      }
+      #map {
+        width: 100%;
+        height: 100%;
+      }
+      .leaflet-control-zoom a {
+        width: 44px !important;
+        height: 44px !important;
+        line-height: 44px !important;
+      }
+
+      /* ---------- Boutons ---------- */
+      .btn {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+        padding: 16px 24px;
+        font: inherit;
+        text-align: center;
+        text-decoration: none;
+        color: var(--bg);
+        background: var(--accent-dark);
+        border: 2px solid var(--accent);
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      /* Boutons ronds avec icône : profil, retour, position */
+      #profile-btn,
+      #settings-close,
+      #locate-btn,
+      #add-locker-btn {
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent);
+        background: var(--surface);
+        border: 2px solid var(--accent);
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      #settings-close {
+        margin-bottom: 20px;
+      }
+
+      button svg {
+        width: 28px;
+        height: 28px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* ---------- Bouton de position ---------- */
+      #locate-btn {
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        z-index: 1050;
+        width: 60px;
+        height: 60px;
+      }
+      #locate-btn.placing {
+        color: var(--surface);
+        background: var(--accent);
+      }
+
+      #locate-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        min-width: 26px;
+        height: 26px;
+        line-height: 26px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: bold;
+        color: #fff;
+        background: var(--alert);
+        border-radius: 50%;
+      }
+
+      #locate-hint,
+      #add-hint {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        z-index: 900;
+        padding: 14px 16px;
+        font-size: 16px;
+        text-align: center;
+        color: var(--surface);
+        background: var(--accent);
+        border-radius: 12px;
+      }
+
+      /* ---------- Barre du bas ---------- */
+      nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: var(--nav-h);
+        z-index: 1000;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        background: var(--surface);
+        border-top: 1px solid var(--line);
+      }
+      nav button {
+        flex: 1;
+        height: 100%;
+        color: var(--muted);
+        background: none;
+        border: none;
+        cursor: pointer;
+      }
+      nav button.active {
+        color: var(--accent);
+      }
+      nav svg {
+        width: 32px;
+        height: 32px;
+      }
+
+      /* Bouton rond du milieu qui dépasse */
+      nav .center {
+        flex: none;
+        width: 76px;
+        height: 76px;
+        margin-top: -34px;
+        background: var(--accent);
+        border: 5px solid var(--bg);
+        border-radius: 50%;
+      }
+      nav .center,
+      nav .center.active {
+        color: var(--surface);
+      }
+      nav .center svg {
+        width: 36px;
+        height: 36px;
+      }
+
+      /* ---------- Paramètres ---------- */
+      #settings {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        padding: 20px;
+        overflow-y: auto;
+        background: var(--bg);
+      }
+
+      .inner-settings-div {
+        margin-bottom: 32px;
+        border: 1px solid #4a3428;
+        padding: 10px;
+        border-radius: 10px;
+      }
+      .inner-settings-h2 {
+        font-size: 22px;
+        margin-bottom: 12px;
+      }
+      .inner-settings-h3 {
+        font-size: 18px;
+        margin-bottom: 8px;
+        color: var(--muted);
+      }
+
+      .choice-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .choice {
+        flex: 1;
+        padding: 14px 10px;
+        font: inherit;
+        font-size: 16px;
+        color: var(--accent);
+        background: none;
+        border: 2px solid var(--accent);
+        border-radius: 999px;
+        cursor: pointer;
+        opacity: 0.5;
+      }
+      .choice.selected {
+        opacity: 1;
+        color: var(--surface);
+        background: var(--accent);
+      }
+
+      .tag {
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 12px;
+        font-size: 14px;
+      }
+
+      #add-locker-btn {
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+        z-index: 1050;
+        width: 60px;
+        height: 60px;
+        border-radius: 999px;
+      }
+
+      #add-locker-btn.placing {
+        color: var(--surface);
+        background: var(--accent);
+      }
+
+      #locker-form {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        z-index: 1300;
+        padding: 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+        border-radius: 0 0 18px 18px;
+      }
+
+      #locker-form h2 {
+        font-size: 22px;
+        margin-bottom: 8px;
+      }
+
+      #locker-name {
+        width: 100%;
+        height: 56px;
+        padding: 0 16px;
+        font: inherit;
+        background: #fff;
+        border: 2px solid var(--line);
+        border-radius: 12px;
+      }
+
+      #locker-error {
+        color: var(--alert);
+        margin: 8px 0 0;
+      }
+    </style>
+    <!--############################################################################-->
+  </head>
+  <!--############################################################################-->
+  <!--############################################################################-->
+  <!--############################################################################-->
+  <body>
+    <header>
+      <span class="logo">Lock-E<span class="tag">admin</span> </span>
+      <button type="button" id="profile-btn" aria-label="Profile and settings">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- Left view: list of lockers -->
+    <section class="view" id="view-list">
+      <h1>Nearby lockers</h1>
+      <ul id="locker-list">
+        <!-- JS to see every lockers -->
+      </ul>
+      <button class="btn" id="see-more">See more</button>
+    </section>
+
+    <!-- Middle view: map -->
+    <section class="view active" id="view-map">
+      <div id="map"></div>
+
+      <button type="button" id="locate-btn" aria-label="Set my location">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 22s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z" />
+          <circle cx="12" cy="10" r="2.5" />
+        </svg>
+        <span id="locate-badge">!</span>
+      </button>
+
+      <button type="button" id="add-locker-btn" aria-label="Add a locker">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+      </button>
+
+      <div id="add-hint" hidden>Tap the map to place the locker</div>
+
+      <form id="locker-form" hidden>
+        <h2>New locker</h2>
+        <p id="locker-coords"></p>
+        <input
+          id="locker-name"
+          type="text"
+          placeholder="Locker name"
+          maxlength="80"
+          required
+        />
+        <p id="locker-error"></p>
+        <button type="submit" class="btn">Save locker</button>
+        <button type="button" class="btn" id="locker-cancel">Cancel</button>
+      </form>
+
+      <div id="locate-hint" hidden>Tap the map to set your location</div>
+    </section>
+
+    <!-- Right view: current booking -->
+    <section class="view" id="view-booking">
+      <h1>My booking</h1>
+      <div id="booking-content">
+        <!-- JS: show the booking, otherwise this text -->
+        <p>You have no active booking.</p>
+      </div>
+    </section>
+
+    <!-- Tab bar -->
+    <nav>
+      <button data-view="list" aria-label="Nearby lockers">
+        <svg viewBox="0 0 24 24">
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+        </svg>
+      </button>
+
+      <button class="center active" data-view="map" aria-label="Map">
+        <svg viewBox="0 0 24 24">
+          <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4zM8 2v16M16 6v16" />
+        </svg>
+      </button>
+
+      <button data-view="booking" aria-label="My booking">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
+        </svg>
+      </button>
+    </nav>
+
+    <div id="settings" hidden>
+      <button type="button" id="settings-close" aria-label="Close settings">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+      </button>
+      <h1>Settings</h1>
+
+      <div class="inner-settings-div">
+        <h2 class="inner-settings-h2">Preferences</h2>
+        <h3 class="inner-settings-h3">Location</h3>
+        <p>
+          Your location information is only saved on your browser/app. Lock-E
+          doesn't save it in its database.
+        </p>
+        <p>What method do you prefer?</p>
+
+        <div class="choice-group">
+          <button type="button" class="choice" data-method="manual">
+            Define it myself (Manual)
+          </button>
+          <button type="button" class="choice" data-method="gps">
+            My device location (Auto)
+          </button>
+        </div>
+      </div>
+
+      <div class="inner-settings-div">
+        <h2 class="inner-settings-h2">Your information</h2>
+
+        <a class="btn" href="/logout">Log out</a>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+      // ///////////////////////////////////////////////////////////////////////////
+      // //////////////////////////  Map related section  //////////////////////////
+      // ///////////////////////////////////////////////////////////////////////////
+      const LOCATION_KEY = "user-location-lock-e";
+
+      const locateBtn = document.getElementById("locate-btn");
+      const locateBadge = document.getElementById("locate-badge");
+      const locateHint = document.getElementById("locate-hint");
+
+      // Add a location point manually
+      let userMarker = null;
+      let placing = false;
+      let map = null;
+
+      // Add a locker
+      let adding = false;
+      let pendingPoint = null;
+      let pendingMarker = null;
+
+      function loadLocation() {
+        try {
+          return JSON.parse(localStorage.getItem(LOCATION_KEY));
+        } catch {
+          return null;
+        }
+      }
+
+      function saveLocation(loc) {
+        try {
+          localStorage.setItem(LOCATION_KEY, JSON.stringify(loc));
+        } catch {}
+      }
+
+      function drawUserMarker(loc) {
+        if (userMarker) {
+          userMarker.setLatLng([loc.lat, loc.lng]);
+        } else {
+          userMarker = L.circleMarker([loc.lat, loc.lng], {
+            radius: 9,
+            color: "#f3ebe2",
+            fillColor: "#168AD9",
+            fillOpacity: 0.9,
+          }).addTo(map);
+        }
+      }
+
+      function updateBadge() {
+        locateBadge.hidden = !!loadLocation();
+      }
+
+      function setPlacing(on) {
+        placing = on;
+        if (on) setAdding(false);
+        locateBtn.classList.toggle("placing", on);
+        locateHint.hidden = !on;
+        document.getElementById("map").classList.toggle("placing", on);
+      }
+
+      function initMap() {
+        if (map) {
+          map.invalidateSize();
+          return;
+        }
+
+        startTrackingUserLocation();
+
+        map = L.map("map").setView([35.855353, 128.485279], 15);
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "&copy; OpenStreetMap",
+        }).addTo(map);
+
+        const saved = loadLocation();
+        if (saved) {
+          map.setView([saved.lat, saved.lng], 15);
+          drawUserMarker(saved);
+        }
+
+        map.on("click", (e) => {
+          const point = { lat: e.latlng.lat, lng: e.latlng.lng };
+
+          if (placing) {
+            saveLocation(point);
+            drawUserMarker(point);
+            setPlacing(false);
+            updateBadge();
+          } else if (adding) {
+            openLockerForm(point);
+          }
+        });
+      }
+
+      locateBtn.addEventListener("click", () => {
+        setPlacing(!placing);
+        applyMethod("manual");
+        showMethodTheme("manual");
+        saveMethod("manual");
+      });
+
+      // ///////////////////////////////////////////////////////////////////////////
+      // ////////////// User location traking related section //////////////////////
+      // ///////////////////////////////////////////////////////////////////////////
+      let watchId = null;
+
+      function startTrackingUserLocation() {
+        if (!navigator.geolocation || watchId !== null) return;
+
+        watchId = navigator.geolocation.watchPosition((position) => {
+          loc = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          saveLocation(loc);
+          saveMethod("gps");
+          drawUserMarker(loc);
+          updateBadge();
+          showMethodTheme(loadMethod());
+        });
+      }
+
+      function stopTrackingUserLocation() {
+        if (watchId === null) {
+          return;
+        } else {
+          navigator.geolocation.clearWatch(watchId);
+          watchId = null;
+        }
+      }
+
+      // ///////////////////////////////////////////////////////////////////////////
+      // /////////////// Inner app navigation related section //////////////////////
+      // ///////////////////////////////////////////////////////////////////////////
+
+      function showView(name) {
+        document
+          .querySelectorAll(".view")
+          .forEach((v) => v.classList.remove("active"));
+        document.getElementById("view-" + name).classList.add("active");
+
+        document
+          .querySelectorAll("nav button")
+          .forEach((b) =>
+            b.classList.toggle("active", b.dataset.view === name),
+          );
+
+        if (name === "map") initMap(); // la carte doit être visible pour calculer sa taille
+      }
+
+      document
+        .querySelectorAll("nav button")
+        .forEach((b) =>
+          b.addEventListener("click", () => showView(b.dataset.view)),
+        );
+
+      // ///////////////////////////////////////////////////////////////////////////
+      // ////////////////////// Settings related section  //////////////////////////
+      // ///////////////////////////////////////////////////////////////////////////
+
+      const settings = document.getElementById("settings");
+
+      document.getElementById("profile-btn").addEventListener("click", () => {
+        settings.hidden = false;
+      });
+
+      document
+        .getElementById("settings-close")
+        .addEventListener("click", () => {
+          settings.hidden = true;
+        });
+
+      const METHOD_KEY = "location-method";
+      const choices = document.querySelectorAll(".choice");
+
+      function loadMethod() {
+        try {
+          return localStorage.getItem(METHOD_KEY) || "manual";
+        } catch {
+          return "manual";
+        }
+      }
+
+      function saveMethod(method) {
+        try {
+          localStorage.setItem(METHOD_KEY, method);
+        } catch {}
+      }
+
+      function showMethodTheme(method) {
+        choices.forEach((b) => {
+          const on = b.dataset.method === method;
+          b.classList.toggle("selected", on);
+          b.setAttribute("aria-pressed", on);
+        });
+      }
+
+      function applyMethod(method) {
+        if (method === "gps") {
+          startTrackingUserLocation();
+        } else {
+          stopTrackingUserLocation();
+        }
+      }
+
+      choices.forEach((b) => {
+        b.addEventListener("click", () => {
+          saveMethod(b.dataset.method);
+          applyMethod(b.dataset.method);
+          showMethodTheme(b.dataset.method);
+        });
+      });
+
+      initMap();
+      updateBadge();
+      showMethodTheme(loadMethod());
+
+      // ///////////////////////////////////////////////////////////////////////////
+      // ////////////////////// Add a locker related section  //////////////////////
+      // ///////////////////////////////////////////////////////////////////////////
+
+      const addBtn = document.getElementById("add-locker-btn");
+      const addHint = document.getElementById("add-hint");
+      const lockerForm = document.getElementById("locker-form");
+      const lockerCoords = document.getElementById("locker-coords");
+      const lockerName = document.getElementById("locker-name");
+      const lockerError = document.getElementById("locker-error");
+
+      function setAdding(on) {
+        adding = on;
+        addBtn.classList.toggle("placing", on);
+        addHint.hidden = !on;
+        if (on) setPlacing(false);
+      }
+
+      function openLockerForm(point) {
+        pendingPoint = point;
+        if (pendingMarker) pendingMarker.remove();
+        pendingMarker = L.marker([point.lat, point.lng]).addTo(map);
+
+        lockerCoords.textContent =
+          "Latitude :" +
+          point.lat.toFixed(5) +
+          ", Longitude :" +
+          point.lng.toFixed(5);
+        lockerError.textContent = "";
+        lockerForm.hidden = false;
+        setAdding(false);
+        lockerName.focus();
+      }
+
+      function closeLockerForm() {
+        if (pendingMarker) pendingMarker.remove();
+        pendingMarker = null;
+        pendingPoint = null;
+        lockerName.value = "";
+        lockerForm.hidden = true;
+      }
+
+      addBtn.addEventListener("click", () => setAdding(!adding));
+      document
+        .getElementById("locker-cancel")
+        .addEventListener("click", closeLockerForm);
+
+      lockerForm.addEventListener("submit", async (event) => {
+        event.preventDefault(); // avoid reloading the page
+        const name = lockerName.value.trim();
+
+        const response = await fetch("/api/lockers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name,
+            lat: pendingPoint.lat,
+            lng: pendingPoint.lng,
+          }),
+        });
+
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          lockerError.textContent =
+            result.error || "Could not save this locker.";
+          return;
+        }
+
+        // Le marqueur devient permanent, avec le nom en popup
+        const label = document.createElement("div");
+        label.textContent = name; // textContent : pas de HTML injecté
+        pendingMarker.bindPopup(label);
+        pendingMarker = null;
+        closeLockerForm();
+      });
+    </script>
+  </body>
+</html>

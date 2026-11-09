@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ locker["location_name"] }} - Lock-E</title>
+    <link rel="stylesheet" href="/CSS/locker.css">
+ 
+  </head>
+
+  <body>
+    
+    <a class="back" href="/" aria-label="Back">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+    </a>
+
+    <main
+      id="locker"
+      data-id="{{ locker['id']   }}"
+      data-lat="{{ locker['latitude'] }}"
+      data-lng="{{ locker['longitude'] }}"
+    >
+      <h1>{{ locker["location_name"] }}</h1>
+      <p class="provider">{{ locker["provider"].replace("_", " ") }}</p>
+      <p class="distance" id="distance">Distance unknown</p>
+
+      <h2>Choose a size</h2>
+      <div class="choice-group" id="sizes">
+        {% for value, label in [(1, "Small"), (2, "Medium"), (3, "Big")] %}
+        <button
+          type="button"
+          class="choice"
+          data-size="{{ value }}"
+          {% if free[value] == 0 %}disabled{% endif %}
+        >
+          {{ label }}
+          <small>{% if free[value] > 0 %}{{ free[value] }} left{% else %}Full{% endif %}</small>
+        </button>
+        {% endfor %}
+      </div>
+
+      <button type="button" class="btn" id="reserve-btn" disabled>Reserve</button>
+    </main>
+
+    <script src="/JS/locker.js"></script>
+  </body>
+</html>

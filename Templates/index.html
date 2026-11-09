@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+    />
+    <title>Lock-E</title>
+    <link rel="stylesheet" href="/CSS/index.css">
+    <!--############################################################################-->
+  </head>
+  <!--############################################################################-->
+  <body>
+    <header>
+      <span class="logo">Lock-E</span>
+      <button type="button" id="profile-btn" aria-label="Profile and settings">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- Left view: list of lockers -->
+    <section class="view" id="view-list">
+      <h1>Nearby lockers</h1>
+      <ul id="locker-list">
+        <!-- Cards of every lockers -->
+      </ul>
+    </section>
+
+
+
+    <!-- Middle view: map -->
+    <section class="view active" id="view-map">
+      <div id="map"></div>
+
+      <a id="location-hint" hidden>Click on the map to set your location</a>
+
+      <button type="button" id="locate-btn" aria-label="Set my location">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 22s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z" />
+          <circle cx="12" cy="10" r="2.5" />
+        </svg>
+      </button>
+    </section>
+
+
+
+    <!-- Right view: current booking -->
+    <section class="view" id="view-booking">
+      <h1>My booking</h1>
+      <div id="booking-content">
+        <!-- JS: show the booking, otherwise this text -->
+        <p>You have no active booking.</p>
+      </div>
+    </section>
+
+    <!-- Tab bar -->
+    <nav>
+      <button data-view="list" aria-label="Nearby lockers">
+        <svg viewBox="0 0 24 24">
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+        </svg>
+      </button>
+
+      <button class="center active" data-view="map" aria-label="Map">
+        <svg viewBox="0 0 24 24">
+          <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4zM8 2v16M16 6v16" />
+        </svg>
+      </button>
+
+      <button data-view="booking" aria-label="My booking">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
+        </svg>
+      </button>
+    </nav>
+
+    <div id="settings" hidden>
+      <button type="button" id="settings-close" aria-label="Close settings">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+      </button>
+      <h1>Settings</h1>
+
+      <div class="inner-settings-div">
+        <h2 class="inner-settings-h2">Your information</h2>
+
+        <a class="btn" href="/logout">Log out</a>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="/JS/map.js"></script>
+    <script src="/JS/indexNavigation.js"></script>
+    <script>
+      initMap();
+      displayLockersOnMap();
+      displayUserLocation();
+    </script>
+  </body>
+</html>

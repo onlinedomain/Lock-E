@@ -1,0 +1,595 @@
+:root {
+        --bg: #f3ebe2;
+        --surface: #fbf7f2;
+        --line: #dccfc1;
+        --text: #4a3428;
+        --muted: #8b6b55;
+        --accent: #6f4e37;
+        --accent-dark: #522005;
+        --alert: #b3402a;
+        --nav-h: 76px;
+        --header-h: 64px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 18px;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      h1 {
+        font-size: 28px;
+        margin-bottom: 20px;
+      }
+      p {
+        color: var(--muted);
+        line-height: 1.5;
+        margin-bottom: 12px;
+      }
+
+      /* ---------- En-tête ---------- */
+      header {
+        height: var(--header-h);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+      }
+      .logo {
+        font-size: 26px;
+        font-weight: bold;
+        color: var(--accent);
+      }
+
+      /* ---------- Vues ---------- */
+      .view {
+        display: none;
+        height: calc(100dvh - var(--nav-h) - var(--header-h));
+        overflow-y: auto;
+        padding: 24px 20px;
+      }
+      .view.active {
+        display: block;
+      }
+
+      /* ---------- Liste ---------- */
+      #locker-list {
+        list-style: none;
+      }
+      #locker-list li {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 14px;
+      }
+
+      /* ---------- Carte ---------- */
+      #view-map {
+        position: relative;
+        padding: 0;
+      }
+      #map {
+        width: 100%;
+        height: 100%;
+      }
+      .leaflet-control-zoom a {
+        width: 44px !important;
+        height: 44px !important;
+        line-height: 44px !important;
+      }
+
+      /* ---------- Boutons ---------- */
+      .btn {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+        padding: 16px 24px;
+        font: inherit;
+        text-align: center;
+        text-decoration: none;
+        color: var(--bg);
+        background: var(--accent-dark);
+        border: 2px solid var(--accent);
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      /* Boutons ronds avec icône : profil, retour, position */
+      #profile-btn,
+      #settings-close,
+      #locate-btn,
+      #add-locker-btn {
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent);
+        background: var(--surface);
+        border: 2px solid var(--accent);
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      #settings-close {
+        margin-bottom: 20px;
+      }
+
+      button svg {
+        width: 28px;
+        height: 28px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* ---------- Bouton de position ---------- */
+      #locate-btn {
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        z-index: 1050;
+        width: 60px;
+        height: 60px;
+      }
+      #locate-btn.placing {
+        color: var(--surface);
+        background: var(--accent);
+      }
+
+      #locate-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        min-width: 26px;
+        height: 26px;
+        line-height: 26px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: bold;
+        color: #fff;
+        background: var(--alert);
+        border-radius: 50%;
+      }
+
+      #locate-hint,
+      #add-hint {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        z-index: 900;
+        padding: 14px 16px;
+        font-size: 16px;
+        text-align: center;
+        color: var(--surface);
+        background: var(--accent);
+        border-radius: 12px;
+      }
+
+      /* ---------- Barre du bas ---------- */
+      nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: var(--nav-h);
+        z-index: 1000;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        background: var(--surface);
+        border-top: 1px solid var(--line);
+      }
+      nav button {
+        flex: 1;
+        height: 100%;
+        color: var(--muted);
+        background: none;
+        border: none;
+        cursor: pointer;
+      }
+      nav button.active {
+        color: var(--accent);
+      }
+      nav svg {
+        width: 32px;
+        height: 32px;
+      }
+
+      /* Bouton rond du milieu qui dépasse */
+      nav .center {
+        flex: none;
+        width: 76px;
+        height: 76px;
+        margin-top: -34px;
+        background: var(--accent);
+        border: 5px solid var(--bg);
+        border-radius: 50%;
+      }
+      nav .center,
+      nav .center.active {
+        color: var(--surface);
+      }
+      nav .center svg {
+        width: 36px;
+        height: 36px;
+      }
+
+      /* ---------- Paramètres ---------- */
+      #settings {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        padding: 20px;
+        overflow-y: auto;
+        background: var(--bg);
+      }
+
+      .inner-settings-div {
+        margin-bottom: 32px;
+        border: 1px solid #4a3428;
+        padding: 10px;
+        border-radius: 10px;
+      }
+      .inner-settings-h2 {
+        font-size: 22px;
+        margin-bottom: 12px;
+      }
+      .inner-settings-h3 {
+        font-size: 18px;
+        margin-bottom: 8px;
+        color: var(--muted);
+      }
+
+      .choice-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .choice {
+        flex: 1;
+        padding: 14px 10px;
+        font: inherit;
+        font-size: 16px;
+        color: var(--accent);
+        background: none;
+        border: 2px solid var(--accent);
+        border-radius: 999px;
+        cursor: pointer;
+        opacity: 0.5;
+      }
+      .choice.selected {
+        opacity: 1;
+        color: var(--surface);
+        background: var(--accent);
+      }
+
+      .tag {
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 12px;
+        font-size: 14px;
+      }
+
+      #add-locker-btn {
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+        z-index: 1050;
+        width: 60px;
+        height: 60px;
+        border-radius: 999px;
+      }
+
+      #add-locker-btn.placing {
+        color: var(--surface);
+        background: var(--accent);
+      }
+
+      #locker-form {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        z-index: 1300;
+        padding: 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+        border-radius: 0 0 18px 18px;
+      }
+
+      #locker-form h2 {
+        font-size: 22px;
+        margin-bottom: 8px;
+      }
+
+      #locker-name {
+        width: 100%;
+        height: 56px;
+        padding: 0 16px;
+        font: inherit;
+        background: #fff;
+        border: 2px solid var(--line);
+        border-radius: 12px;
+      }
+
+      #locker-error {
+        color: var(--alert);
+        margin: 8px 0 0;
+      }
+
+      /* Étiquette plus basse (l'id dans le sélecteur est nécessaire pour
+   l'emporter sur "#locker-list li" qui a padding: 20px) */
+      #locker-list li.locker-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 16px;
+        margin-bottom: 10px;
+      }
+
+      .locker-item p,
+      .locker-item div {
+        line-height: 1.3;
+      }
+
+      .locker-bars {
+        display: flex;
+        flex-direction: column; /* S, M, B empilés */
+        gap: 4px;
+      }
+
+      .bar-col {
+        display: flex;
+        flex-direction: row; /* trait puis lettre à droite */
+        align-items: center;
+        gap: 8px;
+      }
+
+      .bar {
+        width: 8px;
+        border-radius: 4px;
+        background: var(--accent);
+      }
+      .bar.empty {
+        background: var(--line);
+      }
+
+      .bar-label {
+        font-size: 14px;
+        font-weight: bold;
+        min-width: 28px;
+      }
+      .bar-label.ok {
+        color: #16a34a;
+      } /* vert : au moins 1 libre */
+      .bar-label.none {
+        color: #dc2626;
+      } /* rouge : aucun libre */
+      .locker-marker {
+        background: none;
+        border: none;
+      }
+
+      .locker-marker {
+        background: none;
+        border: none;
+      }
+
+      .lk-wrap {
+        position: relative;
+        width: 76px;
+        height: 54px;
+      }
+
+      /* Capsule */
+      .lk {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 76px;
+        height: 42px;
+        padding: 0 8px 0 5px;
+        background: linear-gradient(145deg, #7a553c 0%, #522005 100%);
+        border: 2px solid var(--ring);
+        border-radius: 16px;
+        box-shadow:
+          0 6px 14px rgba(40, 20, 5, 0.45),
+          0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+          0 0 12px color-mix(in srgb, var(--ring) 45%, transparent);
+        transition: transform 0.15s ease;
+      }
+      .locker-marker:hover .lk {
+        transform: translateY(-3px) scale(1.06);
+      }
+
+      /* Médaillon du provider */
+      .lk-badge {
+        flex: none;
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        font-size: 16px;
+        background: var(--surface);
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+      }
+      .lk-badge img {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+      }
+
+      /* Compteurs S / M / B */
+      .lk-counts {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .lk-row {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        font: 700 10px/11px system-ui, sans-serif;
+        letter-spacing: 0.3px;
+      }
+      .lk-row i {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 5px currentColor;
+      }
+      .lk-row.ok   { color: #4ade80; }
+      .lk-row.none { color: #f8a371; }
+
+      /* Pointe */
+      .lk-tail {
+        position: absolute;
+        left: 50%;
+        top: 41px;
+        transform: translateX(-50%);
+        border-left: 7px solid transparent;
+        border-right: 7px solid transparent;
+        border-top: 10px solid var(--ring);
+      }
+
+      /* Halo qui pulse sous la pointe */
+      .lk-pulse {
+        position: absolute;
+        left: 50%;
+        top: 51px;
+        width: 10px;
+        height: 10px;
+        margin: -5px 0 0 -5px;
+        border-radius: 50%;
+        background: var(--ring);
+        opacity: 0.6;
+        animation: lk-pulse 1.8s ease-out infinite;
+        pointer-events: none;
+      }
+      @keyframes lk-pulse {
+        to { transform: scale(3.2); opacity: 0; }
+      }
+      .locker-item {
+        cursor: pointer;
+      }
+
+      #location-hint {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        z-index: 1100;            /* au-dessus des tuiles et des contrôles Leaflet */
+        padding: 12px 16px;
+        font-size: 16px;
+        font-weight: bold;
+        text-align: center;
+        color: var(--alert);      /* rouge de ta palette (#b3402a) */
+        background: var(--surface);
+        border: 2px solid var(--alert);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        pointer-events: none;     /* le clic passe à travers : on peut cliquer sur la carte */
+      }
+
+      #locationnotset {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        padding: 18px 24px;
+        font-family: inherit;
+        font-size: 17px;
+        font-weight: bold;
+        line-height: 1.3;
+        text-align: center;
+        color: #ffffff;
+        background: linear-gradient(145deg, #7a553c 0%, var(--accent-dark) 100%);
+        border: 2px solid var(--accent);
+        border-radius: 999px;
+        box-shadow: 0 6px 14px rgba(82, 32, 5, 0.3);
+        cursor: pointer;
+        user-select: none;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      #locationnotset::before {
+        content: "📍";
+        font-size: 22px;
+      }
+
+      #locationnotset::after {
+        content: "→";
+        font-size: 22px;
+      }
+
+      #locationnotset:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 18px rgba(82, 32, 5, 0.35);
+      }
+
+      #locationnotset:active {
+        transform: translateY(0);
+        box-shadow: 0 3px 8px rgba(82, 32, 5, 0.3);
+      }
+
+      .user-marker {
+  background: none;
+  border: none;
+}
+
+.user-dot {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+/* Point central, avec un léger battement */
+.user-core {
+  position: absolute;
+  inset: 5px;
+  background: #168ad9;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(22, 138, 217, 0.9);
+  animation: user-twinkle 1.6s ease-in-out infinite;
+}
+
+/* Ondes qui partent du point */
+.user-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid #168ad9;
+  border-radius: 50%;
+  opacity: 0;
+  animation: user-wave 2.4s ease-out infinite;
+}
+.user-ring.delay {
+  animation-delay: 1.2s;
+}
+
+@keyframes user-twinkle {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 6px  rgba(22, 138, 217, 0.7); }
+  50%      { transform: scale(1.15); box-shadow: 0 0 16px rgba(22, 138, 217, 1); }
+}
+
+@keyframes user-wave {
+  0%   { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
