@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lock-E</title>
+  <style>
+    :root {
+      --bg: #f3ebe2;
+      --surface: #fbf7f2;
+      --line: #dccfc1;
+      --text: #4a3428;
+      --muted: #8b6b55;
+      --accent: #6f4e37;
+      --header-h: 64px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      line-height: 1.6;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ---------- Header ---------- */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .logo { font-size: 26px; font-weight: bold; color: var(--accent); }
+
+    .header-actions { display: flex; gap: 10px; }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 22px;
+      font: inherit;
+      font-size: 17px;
+      border-radius: 999px;
+      border: 2px solid var(--accent);
+      color: var(--accent);
+      background: none;
+    }
+    .btn-solid { color: var(--surface); background: var(--accent); }
+
+    .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+    /* ---------- Sections ---------- */
+    section { padding: 56px 20px; max-width: 760px; margin: 0 auto; }
+
+    h1 { font-size: 38px; line-height: 1.2; color: var(--accent); margin-bottom: 16px; }
+    h2 { font-size: 28px; line-height: 1.25; color: var(--accent); margin-bottom: 24px; }
+    h3 { font-size: 20px; margin-bottom: 4px; }
+
+    .lead { font-size: 20px; color: var(--muted); margin-bottom: 28px; }
+
+    /* ---------- Hero ---------- */
+    .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 40px; }
+    .hero-cta .btn { padding: 15px 28px; }
+
+    /* Petite grille de casiers décorative */
+    .lockers {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 14px;
+      background: var(--accent);
+      border-radius: 16px;
+    }
+    .lockers span {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      background: var(--surface);
+      position: relative;
+    }
+    .lockers span::after {
+      content: "";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .lockers .taken { background: #a98a73; }
+    .lockers .taken::after { background: var(--surface); }
+
+    /* ---------- Étapes ---------- */
+    .steps { list-style: none; counter-reset: step; }
+    .steps li {
+      counter-increment: step;
+      position: relative;
+      padding: 0 0 28px 64px;
+    }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: var(--surface);
+      background: var(--accent);
+      border-radius: 50%;
+    }
+    .steps p, .features p { color: var(--muted); }
+
+    /* ---------- Avantages ---------- */
+    .features { display: grid; gap: 16px; }
+    .features div {
+      padding: 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+
+    /* ---------- Appel final ---------- */
+    .final {
+      text-align: center;
+      background: var(--accent);
+      color: var(--surface);
+      border-radius: 20px;
+      margin: 0 20px 56px;
+      max-width: none;
+    }
+    .final h2 { color: var(--surface); margin-bottom: 12px; }
+    .final p { margin-bottom: 24px; opacity: 0.85; }
+    .final .btn { color: var(--accent); background: var(--surface); border-color: var(--surface); padding: 15px 30px; }
+
+    footer { text-align: center; padding: 0 20px 32px; color: var(--muted); font-size: 15px; }
+
+    @media (min-width: 700px) {
+      h1 { font-size: 48px; }
+      .features { grid-template-columns: repeat(3, 1fr); }
+      .final { margin: 0 auto 56px; max-width: 720px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <span class="logo">Lock-E</span>
+    <div class="header-actions">
+      <a class="btn" href="/login">Login</a>
+      <a class="btn btn-solid" href="/register">Sign up</a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section>
+    <h1>A locker when you need one.</h1>
+    <p class="lead">Find a locker near you, check which compartments are free, and book one in a few taps.</p>
+
+    <div class="hero-cta">
+      <a class="btn btn-solid" href="/register">Create an account</a>
+      <a class="btn" href="#how">See how it works</a>
+    </div>
+
+    <div class="lockers" aria-hidden="true">
+      <span></span><span class="taken"></span><span></span><span></span>
+      <span class="taken"></span><span></span><span></span><span class="taken"></span>
+      <span></span><span></span><span class="taken"></span><span></span>
+    </div>
+  </section>
+
+  <!-- Comment ça marche -->
+  <section id="how">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li>
+        <h3>Find a locker</h3>
+        <p>Open the map or the list to see the lockers closest to you.</p>
+      </li>
+      <li>
+        <h3>Pick a compartment</h3>
+        <p>See how many compartments are free before you move.</p>
+      </li>
+      <li>
+        <h3>Book it</h3>
+        <p>Confirm your booking and find it anytime in the My booking tab.</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- Avantages -->
+  <section>
+    <h2>Why Lock-E</h2>
+    <div class="features">
+      <div>
+        <h3>Live availability</h3>
+        <p>The map shows what is free right now.</p>
+      </div>
+      <div>
+        <h3>Closest first</h3>
+        <p>Lockers are sorted by distance from you.</p>
+      </div>
+      <div>
+        <h3>No double booking</h3>
+        <p>A compartment can only be booked by one person at a time.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Appel final -->
+  <section class="final">
+    <h2>Ready to book your first locker?</h2>
+    <p>Creating an account takes less than a minute.</p>
+    <a class="btn" href="/register">Create an account</a>
+  </section>
+
+  <footer>Lock-E</footer>
+
+</body>
+</html>
