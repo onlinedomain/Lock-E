@@ -15,6 +15,9 @@
         if (name === "map") initMap();
 
         if (name === "list") displayLockersList();
+
+        if (name === "booking") displayBookingInfo();
+        else clearInterval(bookingTimer);
       }
 
       document
@@ -127,3 +130,80 @@
           list.append(li);
         }
       }
+
+
+
+
+
+
+
+
+
+
+
+let bookingTimer = null;
+
+async function displayBookingInfo() {
+  const box = document.getElementById("booking-content");
+  clearInterval(bookingTimer);
+
+  let data;
+  try {
+    const res = await fetch("/api/get-reservation-info");
+    if (!res.ok) throw new Error(res.status);
+    data = await res.json();
+  } catch {
+    box.innerHTML = "<p>Could not load your booking.</p>";
+    return;
+  }
+
+  if (!data.reservation_id) {
+    box.innerHTML = "<p>You have no active booking.</p>";
+    return;
+  }
+
+  const sizes = { 1: "Small", 2: "Medium", 3: "Big" };
+
+  // Carte construite en DOM (textContent : pas d'injection de HTML)
+  const card = document.createElement("div");
+  card.className = "booking-card";
+
+  const title = document.createElement("strong");
+  title.textContent = data.locker_name;
+
+  const sub = document.createElement("div");
+  sub.className = "booking-sub";
+  sub.textContent = `${sizes[data.size]} · compartment #${data.compartment_number}`;
+
+  const codeLabel = document.createElement("div");
+  codeLabel.className = "booking-sub";
+  codeLabel.textContent = "Your code";
+
+  const code = document.createElement("div");
+  code.className = "booking-code";
+  code.textContent = data.code;
+
+  const timer = document.createElement("div");
+  timer.className = "booking-timer";
+
+  card.append(title, sub, codeLabel, code, timer);
+  box.replaceChildren(card);
+
+  // Timer : on fixe l'heure de fin une fois, puis on affiche le reste chaque seconde
+  const end = Date.now() + data.seconds_left * 1000;
+
+  function tick() {
+    const left = Math.max(0, Math.round((end - Date.now()) / 1000));
+    const m = String(Math.floor(left / 60)).padStart(2, "0");
+    const s = String(left % 60).padStart(2, "0");
+    timer.textContent = `${m}:${s}`;
+
+    if (left === 0) {
+      clearInterval(bookingTimer);
+      box.innerHTML = "<p>Your booking has expired.</p>";
+    }
+  }
+
+  tick();
+  bookingTimer = setInterval(tick, 1000);
+}

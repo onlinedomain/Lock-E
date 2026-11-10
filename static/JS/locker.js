@@ -47,9 +47,11 @@ document.querySelectorAll(".choice").forEach(btn => {
 });
 
 // ---------- Réservation (à paramétrer plus tard) ----------
-reserveBtn.addEventListener("click", () => {
-  console.log("TODO reserve", {
-    locker_id: Number(locker.dataset.id),
-    size: selectedSize
-  });
+reserveBtn.addEventListener("click", async () => {
+  const res = await fetch(`/api/reserve-compartment?locker_id=${locker.dataset.id}&size=${selectedSize}`)
+  if (res.ok) {
+    window.location.href = '/';
+  }
+
 });
+

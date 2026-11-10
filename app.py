@@ -3,6 +3,11 @@ import sqlite3
 from flask import Flask, jsonify, request, redirect, render_template, session, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from math import radians, sin, cos, asin, sqrt
+from datetime import datetime, timezone, timedelta
+from random import randint
+
+# Traceback gives more detailed error messages about the database interactions
+import traceback
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
@@ -11,13 +16,13 @@ app.secret_key = "to modify before publishing and create an env variable"
 
 app.config.update(SESSION_COOKIE_SAMESITE="lax") # CSRF protection
 
-DOSSIER = os.path.dirname(os.path.abspath(__file__))
-CHEMIN_DB = os.path.join(DOSSIER, 'lock_e_database.db')
+FOLDER = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(FOLDER, 'lock_e_database.db')
 
 #%% ///////////////////////////////////////////////////////////////////////////
 
 def get_db():
-    db = sqlite3.connect(CHEMIN_DB)
+    db = sqlite3.connect(DB_PATH)
     db.row_factory = sqlite3.Row
     db.execute('PRAGMA foreign_keys = ON')
     return db
@@ -232,6 +237,112 @@ def locker_page(locker_id):
         free[r["size"]] = r["n"]
 
     return render_template("locker.html", locker=locker, free=free)
+
+#%% ///////////////////////////////////////////////////////////////////////////
+
+def checkReservationAvailability(locker_id, size, user_id):
+    db = get_db()
+    
+    try:
+        compartment_available = db.execute("""SELECT c.id 
+                                    FROM compartments c 
+                                    WHERE c.locker_id = ? AND c.size = ? AND c.status = 'empty' """,
+                                    (locker_id, size)).fetchone()
+        active_reservation = db.execute("""SELECT * FROM reservations WHERE user_id = ? AND status='active' """, 
+                                       (user_id,)).fetchone()
+    finally:
+        db.close()
+    
+    if compartment_available and not active_reservation:
+        return [compartment_available["id"], False]
+    return [False, active_reservation]
+
+
+@app.route("/api/reserve-compartment")
+def reserveCompartment():
+    if not session.get("user_id"):
+        return redirect("/login")
+    
+    locker_id = int(request.args["locker_id"])
+    size = int(request.args["size"])
+    
+    available_compartment_id = checkReservationAvailability(locker_id, size, session["user_id"])
+    print(available_compartment_id)
+    if available_compartment_id[0]:
+        db = get_db()
+        
+        try:
+            code = f"{randint(0,9999):04d}"
+            created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            db.execute(
+                "INSERT INTO reservations (user_id, compartment_id, created_at, code) VALUES (?,?,?,?)",
+                (session["user_id"], available_compartment_id[0], created_at, code)
+            )
+            db.execute("UPDATE compartments SET status = 'reserved' WHERE id = ?", (available_compartment_id[0],))
+            db.commit()
+            return redirect("/")
+        
+        except Exception:
+            traceback.print_exc()
+            db.rollback()
+            return jsonify(error="no compartment available"), 409
+        
+        finally:
+            db.close()
+    
+    return jsonify(error="You already have a reservation"), 409
+
+
+#%% ///////////////////////////////////////////////////////////////////////////
+
+RESERVATION_MINUTES = 30
+
+@app.route("/api/get-reservation-info")
+def getReservationInfo():
+    if not session.get("user_id"):
+        return jsonify(error="unauthorized"), 401
+
+    db = get_db()
+    try:
+        row = db.execute("""
+            SELECT r.id, r.code, r.created_at,
+                   c.number, c.size, l.location_name
+            FROM reservations r
+            JOIN compartments c ON c.id = r.compartment_id
+            JOIN lockers l ON l.id = c.locker_id
+            WHERE r.user_id = ? AND r.status = 'active'
+            ORDER BY r.created_at DESC
+            LIMIT 1
+        """, (session["user_id"],)).fetchone()
+    finally:
+        db.close()
+
+    if row is None:
+        return jsonify({})   # pas de réservation active
+
+    created = datetime.strptime(row["created_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    expires = created + timedelta(minutes=RESERVATION_MINUTES)
+    seconds_left = int((expires - datetime.now(timezone.utc)).total_seconds())
+
+    if seconds_left <= 0:
+        return jsonify({})   # expirée (le nettoyage en base se fera ailleurs)
+
+    return jsonify(
+        reservation_id=row["id"],
+        code=row["code"],
+        created_at=row["created_at"],
+        locker_name=row["location_name"],
+        compartment_number=row["number"],
+        size=row["size"],
+        seconds_left=seconds_left,
+    )
+    
+
+
+
+
+
+
 
 
 

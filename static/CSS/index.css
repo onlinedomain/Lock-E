@@ -549,7 +549,15 @@
         box-shadow: 0 3px 8px rgba(82, 32, 5, 0.3);
       }
 
-      .user-marker {
+
+
+
+
+
+
+
+/* Marker animation  */
+.user-marker {
   background: none;
   border: none;
 }
@@ -592,4 +600,44 @@
 @keyframes user-wave {
   0%   { transform: scale(0.6); opacity: 0.8; }
   100% { transform: scale(2.8); opacity: 0; }
+}
+
+
+
+
+
+
+
+.booking-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  box-shadow: 0 6px 14px rgba(82, 32, 5, 0.15);
+}
+.booking-card strong {
+  font-size: 22px;
+}
+.booking-sub {
+  color: var(--muted);
+  font-size: 15px;
+}
+.booking-code {
+  font-size: 44px;
+  font-weight: bold;
+  letter-spacing: 10px;
+  text-align: center;
+  color: var(--accent-dark);
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 0 10px 10px; /* compense le letter-spacing */
+}
+.booking-timer {
+  text-align: center;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums; /* chiffres de largeur fixe : pas de saut */
+  color: var(--alert);
 }

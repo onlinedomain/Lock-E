@@ -2,10 +2,10 @@ import os
 import sqlite3
 
 FOLDER = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(FOLDER, 'lock_e_database.db')  # même nom que CHEMIN_DB dans app.py
+DB_PATH = os.path.join(FOLDER, 'lock_e_database.db') 
 
 if os.path.exists(DB_PATH):
-    os.remove(DB_PATH)  # repart de zéro à chaque lancement
+    os.remove(DB_PATH)
 
 db = sqlite3.connect(DB_PATH)
 db.execute('PRAGMA foreign_keys = ON')
@@ -45,7 +45,8 @@ db.executescript('''
         user_id        INTEGER NOT NULL REFERENCES users(id),
         compartment_id INTEGER NOT NULL REFERENCES compartments(id),
         created_at     TEXT NOT NULL CHECK (created_at GLOB '????-??-??T??:??:??Z'),
-        status         TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'failed', 'success'))
+        status         TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'failed', 'success')),
+        code           INTEGER NOT NULL
     );
 
     CREATE UNIQUE INDEX one_active_per_compartment
