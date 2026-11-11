@@ -56,6 +56,27 @@
         <!-- JS: show the booking, otherwise this text -->
         <p>You have no active booking.</p>
       </div>
+
+      <!-- Div expliquant le système de pénalité et les resets -->
+      <div class="penalty-info" style="margin-top: 20px; padding: 15px; background-color: #ffebee; border-left: 4px solid #f44336; border-radius: 5px;">
+        
+        <h2 style="color: #c62828; font-size: 16px; margin-top: 0;">Penalty points system</h2>
+        
+        <p style="color: #333; font-size: 14px;">
+          In case you didn't deposit your package within 30 minutes after the reservation, a penalty will be applied following these rules:
+        </p>
+        
+        <ul style="color: #333; font-size: 14px; padding-left: 20px; margin-bottom: 15px;">
+          <li><strong>First penalty:</strong> A warn message is sent.</li>
+          <li><strong>Second penalty:</strong> +1 penalty point and you can't reserve any locker during 24 hours.</li>
+          <li><strong>Next penalties</strong> Any other penalty after the first will apply an additional +1 penalty point and a prohibition from the locker reservation system lasting for a duration calculated with the number of points accumulated (1 points = +24 hours) </li>
+        </ul>
+        
+        <p style="color: #333; font-size: 14px; margin-bottom: 0;">
+          <strong>Reset conditions:</strong> The penalty points last for either 7 reservations on time or 30 days.
+        </p>
+        
+      </div>
     </section>
 
     <!-- Tab bar -->
