@@ -56,27 +56,39 @@
         <!-- JS: show the booking, otherwise this text -->
         <p>You have no active booking.</p>
       </div>
+      <details id="penalty-rules">
+        <summary>Rules and penalty score</summary>
 
-      <!-- Div expliquant le système de pénalité et les resets -->
-      <div class="penalty-info" style="margin-top: 20px; padding: 15px; background-color: #ffebee; border-left: 4px solid #f44336; border-radius: 5px;">
-        
-        <h2 style="color: #c62828; font-size: 16px; margin-top: 0;">Penalty points system</h2>
-        
-        <p style="color: #333; font-size: 14px;">
-          In case you didn't deposit your package within 30 minutes after the reservation, a penalty will be applied following these rules:
+        <p>
+          This app allows you to reserve lockers from your phone. To avoid an abusive
+          number of reservations, the rules are the following:
         </p>
-        
-        <ul style="color: #333; font-size: 14px; padding-left: 20px; margin-bottom: 15px;">
-          <li><strong>First penalty:</strong> A warn message is sent.</li>
-          <li><strong>Second penalty:</strong> +1 penalty point and you can't reserve any locker during 24 hours.</li>
-          <li><strong>Next penalties</strong> Any other penalty after the first will apply an additional +1 penalty point and a prohibition from the locker reservation system lasting for a duration calculated with the number of points accumulated (1 points = +24 hours) </li>
+
+        <ul>
+          <li>You can only reserve one compartment at a time.</li>
+          <li>
+            You have 30 minutes after clicking the "Reserve" button to deposit your
+            package into the compartment. After this time, you receive a penalty
+            point.
+          </li>
         </ul>
-        
-        <p style="color: #333; font-size: 14px; margin-bottom: 0;">
-          <strong>Reset conditions:</strong> The penalty points last for either 7 reservations on time or 30 days.
+
+        <h2>How does your penalty score work?</h2>
+
+        <p>
+          If you do not deposit the package in time, your score increases by 1 and
+          your account is locked for a duration based on the following formula:
         </p>
-        
-      </div>
+        <p class="rule-formula">24h × (penalty score − 1)</p>
+        <p>
+          The "−1" means that for your first missed reservation you only get a
+          warning and can still reserve compartments.
+        </p>
+        <p>
+          To bring your penalty score back to 0, you need to deposit a package in time
+          7 times in a row.
+        </p>
+      </details>
     </section>
 
     <!-- Tab bar -->
@@ -115,8 +127,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="/JS/map.js"></script>
-    <script src="/JS/indexNavigation.js"></script>
+    <script src="/JS/index.js"></script>
     <script>
       initMap();
       displayLockersOnMap();

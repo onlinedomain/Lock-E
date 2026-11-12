@@ -1,4 +1,4 @@
-// ---------- Distance (position lue dans le navigateur) ----------
+// ---------- Distance ----------
 function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const rad = d => (d * Math.PI) / 180;
@@ -28,14 +28,14 @@ try {
   }
 } catch {}
 
-// ---------- Sélection de la taille ----------
+// ---------- Size selection ----------
 const reserveBtn = document.getElementById("reserve-btn");
 let selectedSize = null;
 
 document.querySelectorAll(".choice").forEach(btn => {
   btn.addEventListener("click", () => {
     const size = Number(btn.dataset.size);
-    selectedSize = selectedSize === size ? null : size; // recliquer désélectionne
+    selectedSize = selectedSize === size ? null : size;
 
     document
       .querySelectorAll(".choice")
@@ -46,12 +46,25 @@ document.querySelectorAll(".choice").forEach(btn => {
   });
 });
 
-// ---------- Réservation (à paramétrer plus tard) ----------
+// ---------- Reservation ----------
 reserveBtn.addEventListener("click", async () => {
-  const res = await fetch(`/api/reserve-compartment?locker_id=${locker.dataset.id}&size=${selectedSize}`)
-  if (res.ok) {
-    window.location.href = '/';
+  reserveBtn.disabled = true;
+
+  try {
+    const res = await fetch(
+      `/api/reserve-compartment?locker_id=${locker.dataset.id}&size=${selectedSize}`
+    );
+    const data = await res.json();
+
+    if (res.ok) {
+      alert(data.message);
+      window.location.href = "/"; 
+    } else {
+      alert(data.error);
+      reserveBtn.disabled = false;
+    }
+  } catch {
+    alert(data.error);
+    reserveBtn.disabled = false;
   }
-
 });
-

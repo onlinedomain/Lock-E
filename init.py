@@ -21,7 +21,9 @@ db.executescript('''
         penalty_score INTEGER NOT NULL DEFAULT 0,
         streak        INTEGER NOT NULL DEFAULT 0,
         email         TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL
+        password_hash TEXT NOT NULL,
+        is_locked     INTEGER NOT NULL DEFAULT 0 CHECK (is_locked IN (0, 1)), 
+        locked_deadline TEXT CHECK (locked_deadline is NULL or locked_deadline GLOB '????-??-??T??:??:??Z')
     );
 
     CREATE TABLE lockers (
@@ -319,24 +321,6 @@ INSERT INTO compartments (locker_id, size, status, number) VALUES
 db.commit()
 
 db.close()
-print("13 lockers et 208 compartiments insérés dans :", DB_PATH)
+print("13 lockers and 208 compartments inserted in :", DB_PATH)
 db.close()
 print('Database created at :', DB_PATH)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
