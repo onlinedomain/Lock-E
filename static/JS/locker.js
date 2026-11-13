@@ -52,7 +52,7 @@ reserveBtn.addEventListener("click", async () => {
 
   try {
     const res = await fetch(
-      `/api/reserve-compartment?locker_id=${locker.dataset.id}&size=${selectedSize}`
+      `/reserve-compartment?locker_id=${locker.dataset.id}&size=${selectedSize}`
     );
     const data = await res.json();
 

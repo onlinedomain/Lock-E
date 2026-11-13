@@ -18,7 +18,7 @@ function showView(name) {
 
   if (name === "list") displayLockersList();
 
-  if (name === "booking") displayBookingInfo();
+  if (name === "booking") {displayBookingInfo(); displayUserInfo();}
   else clearInterval(bookingTimer);
 }
 
@@ -30,7 +30,6 @@ document
 
 
 
-
 // ///////////////////////////////////////////////////////////////////////////
 // ////////////////////// Displaying the settings ////////////////////////////
 // ///////////////////////////////////////////////////////////////////////////
@@ -38,6 +37,7 @@ document
 const settings = document.getElementById("settings");
 
 document.getElementById("profile-btn").addEventListener("click", () => {
+  displayUserInfo();
   settings.hidden = false;
 });
 
@@ -46,9 +46,6 @@ document
   .addEventListener("click", () => {
     settings.hidden = true;
   });
-
-
-
 
 
 
@@ -201,7 +198,7 @@ async function displayBookingInfo() {
 
   const end = Date.now() + data.seconds_left * 1000;
 
-  function tick() {
+  async function tick() {
     const left = Math.max(0, Math.round((end - Date.now()) / 1000 + 1 ));
     const m = String(Math.floor(left / 60)).padStart(2, "0");
     const s = String(left % 60).padStart(2, "0");
@@ -210,13 +207,76 @@ async function displayBookingInfo() {
     if (left === 0) {
       clearInterval(bookingTimer);
       box.innerHTML = "<p>Your booking has expired</p>";
-      fetch("/cancel-reservations").catch(console.error);
+      await fetch("/cancel-reservations").catch(console.error);
+      displayUserInfo();
     }
   }
 
   tick();
   bookingTimer = setInterval(tick, 1000);
 }
+
+
+
+// ///////////////////////////////////////////////////////////////////////////
+// ///////////////////////// Displaying user info ////////////////////////////
+// ///////////////////////////////////////////////////////////////////////////
+
+// In this part we want to display user info as name and email in the parameter 
+// section. But also penalty score, streak, and the date the user can reserve 
+// compartments again if he has an active penalty in the booking view.
+
+async function displayUserInfo() {
+  try {
+    const res = await fetch("/api/get-user-information");
+    if (!res.ok) throw new Error(res.status);
+    const user = await res.json();
+
+    document.getElementById("user-name-set").textContent = `Name : ${user.name}`;
+    document.getElementById("user-email-set").textContent = `Email : ${user.email}`;
+
+    const box = document.getElementById("user-penalty-info");
+    box.replaceChildren();
+
+    const addLine = (text, className = "") => {
+      const p = document.createElement("p");
+      p.textContent = text;
+      if (className) p.className = className;
+      box.append(p);
+    };
+
+    addLine(`Penalty score : ${user.penalty_score}`);
+
+    // Exactement 1 point : simple avertissement
+    if (user.penalty_score === 1) {
+      addLine(
+        "Warning: your next missed reservation will lock your account for 24h.",
+        "penalty-warning",
+      );
+    }
+
+    // Plus de 1 point : streak et temps restant
+    if (user.penalty_score > 1) {
+      addLine(`Streak : ${user.streak}/7 successful reservation in a row`);
+
+      if (user.locked_deadline) {
+        const deadline = new Date(user.locked_deadline);
+        const msLeft = deadline - Date.now();
+
+      if (msLeft > 0) {
+        const totalMin = Math.ceil(msLeft / 60000);
+        const dd = String(Math.floor(totalMin / 1440)).padStart(2, "0");
+        const hh = String(Math.floor((totalMin % 1440) / 60)).padStart(2, "0");
+        const mm = String(totalMin % 60).padStart(2, "0");
+        addLine(`Time left on your penalty : ${dd}d ${hh}h ${mm}m`, "penalty-locked");
+      }
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 
 
 // ///////////////////////////////////////////////////////////////////////////
@@ -236,10 +296,13 @@ async function simulateDeposit() {
   } catch {
     alert("Connection with the database imposible");
   }
+  displayUserInfo();
 }
 
+
+
 // ///////////////////////////////////////////////////////////////////////////
-// ///////////////////////////////// Map /////////////////////////////////////
+// ////////////////////////// Map initialization /////////////////////////////
 // ///////////////////////////////////////////////////////////////////////////
 
 let map = null;
@@ -288,8 +351,6 @@ function initMap() {
   });
 }
 
-
-
 const userIcon = L.divIcon({
   className: "user-marker",
   html: `
@@ -301,6 +362,11 @@ const userIcon = L.divIcon({
   iconSize: [34, 34],
   iconAnchor: [17, 17],
 });
+
+
+// ///////////////////////////////////////////////////////////////////////////
+// ////////////////// Display User location on the Map ///////////////////////
+// ///////////////////////////////////////////////////////////////////////////
 
 function displayUserLocation() {
   if (!map) return;
@@ -332,10 +398,10 @@ function displayUserLocation() {
 
 
 
+// ///////////////////////////////////////////////////////////////////////////
+// /////////////// Display icons on the map for each locker //////////////////
+// ///////////////////////////////////////////////////////////////////////////
 
-
-
-// Display lockers on the map
 const PROVIDER_EMOJI = {
   mondial_relay: "𝓜",
   vinted_go: "𝓥",
@@ -376,10 +442,6 @@ function lockerIcon(l) {
     iconAnchor: [38, 51]
   });
 }
-
-
-
-
 
 async function displayLockersOnMap() {
   // Position de l'utilisateur, sinon centre de la carte

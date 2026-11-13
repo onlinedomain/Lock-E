@@ -56,6 +56,11 @@
         <!-- JS: show the booking, otherwise this text -->
         <p>You have no active booking.</p>
       </div>
+
+      <div id="user-penalty-info">
+
+      </div>
+
       <details id="penalty-rules">
         <summary>Rules and penalty score</summary>
 
@@ -89,6 +94,7 @@
           7 times in a row.
         </p>
       </details>
+
     </section>
 
     <!-- Tab bar -->
@@ -121,8 +127,9 @@
 
       <div class="inner-settings-div">
         <h2 class="inner-settings-h2">Your information</h2>
-
-        <a class="btn" href="/logout">Log out</a>
+        <h4 id="user-name-set">nametest</h4>
+        <h4 id="user-email-set">emailtest</h4>
+        <a class="btn" onclick=log_out()>Log out</a>
       </div>
     </div>
 
@@ -132,6 +139,11 @@
       initMap();
       displayLockersOnMap();
       displayUserLocation();
+      async function log_out(){
+        localStorage.clear();
+        await fetch("/logout");
+        window.location.href = '/'; 
+      }
     </script>
   </body>
 </html>

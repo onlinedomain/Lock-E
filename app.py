@@ -1,33 +1,34 @@
 import os
 import sqlite3
-from flask import Flask, jsonify, request, redirect, render_template, session, abort, flash
-from werkzeug.security import generate_password_hash, check_password_hash
+from random import randint
 from math import radians, sin, cos, asin, sqrt
 from datetime import datetime, timezone, timedelta
-from random import randint
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, jsonify, request, redirect, render_template, session, abort
+import traceback # Traceback gives more detailed error messages with database difficulties
 
-# Traceback gives more detailed error messages about the database interactions
-import traceback
+RESERVATION_MINUTES = 0.2 # (DEFAULT 30) Time before reservation expiration. Has to be the same than in the Worker.py
+PENALTY_HOURS = 0.01 # (DEFAULT 24) Time used in the formula (PENALTY_HOURS * (penalty_score - 1)) to compute user penalty time
 
-app = Flask(__name__, static_folder='static', static_url_path='', template_folder='Templates')
+#%% ///////////////////////// Flask server configuration ////////////////////////
+app = Flask(__name__, static_folder='static', template_folder='Templates', static_url_path='')
 
-# Key to create cookies for users sessions
-app.secret_key = "to modify before publishing and create an env variable"
+app.secret_key = "to modify before publishing and put it in an env variable" # Key to create cookies for users sessions
 
-app.config.update(SESSION_COOKIE_SAMESITE="lax") # CSRF protection
+app.config.update(SESSION_COOKIE_SAMESITE="lax") # CSRF protection (BONUS)
 
-FOLDER = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(FOLDER, 'lock_e_database.db')
 
-#%% ///////////////////////////////////////////////////////////////////////////
 
+#%% /////////////////////////////////////////////////////////////////////////////
+#%% /////////////// Basic functions used everywhere in the code /////////////////
+#%% /////////////////////////////////////////////////////////////////////////////
 def get_db():
+    FOLDER = os.path.dirname(os.path.abspath(__file__))
+    DB_PATH = os.path.join(FOLDER, 'lock_e_database.db')
     db = sqlite3.connect(DB_PATH)
     db.row_factory = sqlite3.Row
     db.execute('PRAGMA foreign_keys = ON')
     return db
-
-#%% ///////////////////////////////////////////////////////////////////////////
 
 def is_admin_user():
     user_id = session.get("user_id")
@@ -38,8 +39,18 @@ def is_admin_user():
     db.close()
     return bool(user and user["is_admin"])
 
-#%% ///////////////////////////////////////////////////////////////////////////
+def haversine_km(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    return 2 * R * asin(sqrt(a))
 
+
+
+#%% /////////////////////////////////////////////////////////////////////////////
+#%% ///////////////////////////// Main page route ///////////////////////////////
+#%% /////////////////////////////////////////////////////////////////////////////
 @app.route('/')
 def default():
 
@@ -50,13 +61,13 @@ def default():
     
         return render_template("index.html")
     
-    return render_template("login.html")
+    return render_template("new_user.html")
 
 
-#%% ///////////////////////////////////////////////////////////////////////////
-# /////////////////////////Account related routes//////////////////////////////
-# /////////////////////////////////////////////////////////////////////////////
 
+#%% /////////////////////////////////////////////////////////////////////////////
+#%% //////////////////////// Account related routes /////////////////////////////
+#%% /////////////////////////////////////////////////////////////////////////////
 @app.route("/register", methods=["GET", "POST"])
 def register():
     
@@ -107,8 +118,6 @@ def register():
         return redirect('/')
     return render_template("register.html")
 
-#%% ///////////////////////////////////////////////////////////////////////////
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     
@@ -148,22 +157,251 @@ def login():
         return redirect('/')
     return render_template("login.html")
 
-#%% ///////////////////////////////////////////////////////////////////////////
-
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
-#%% ///////////////////////////////////////////////////////////////////////////
 
-def haversine_km(lat1, lon1, lat2, lon2):
-    R = 6371.0
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
-    return 2 * R * asin(sqrt(a))
 
+#%% /////////////////////////////////////////////////////////////////////////////
+#%% /////////////////////////////// Locker view /////////////////////////////////
+#%% /////////////////////////////////////////////////////////////////////////////
+@app.route("/locker/<int:locker_id>")
+def locker_page(locker_id):
+    if not session.get("user_id"):
+        return redirect("/login")
+
+    db = get_db()
+    try:
+        locker = db.execute(
+            "SELECT * FROM lockers WHERE id = ?", (locker_id,)
+        ).fetchone()
+        if locker is None:
+            abort(404)
+
+        rows = db.execute(
+            "SELECT size, COUNT(*) AS n FROM compartments "
+            "WHERE locker_id = ? AND status = 'empty' GROUP BY size",
+            (locker_id,),
+        ).fetchall()
+    finally:
+        db.close()
+
+    free = {1: 0, 2: 0, 3: 0}
+    for r in rows:
+        free[r["size"]] = r["n"]
+
+    return render_template("locker.html", locker=locker, free=free)
+
+
+
+#%% /////////////////////////////////////////////////////////////////////////////
+#%% ////////////////////////// Secondary functions //////////////////////////////
+#%% /////////////////////////////////////////////////////////////////////////////
+def checkReservationAvailability(locker_id, size, user_id):
+    db = get_db()
+    unlockUsersAccount()
+
+    try:
+        # Checks if the user has an active penalty
+        user_locked = db.execute("SELECT is_locked FROM users WHERE id = ?",
+                                 (session.get("user_id"),)).fetchone()["is_locked"]
+        if user_locked : return [False,False]
+
+        # Checks if the compartment is still available in case someone reserved it at the same time
+        compartment_available = db.execute("""SELECT c.id 
+                                    FROM compartments c 
+                                    WHERE c.locker_id = ? AND c.size = ? AND c.status = 'empty' """,
+                                    (locker_id, size)).fetchone()
+        
+        # Checks if the user already has an actve reservation
+        active_reservation = db.execute("""SELECT * FROM reservations WHERE user_id = ? AND status='active' """, 
+                                       (user_id,)).fetchone()
+
+    finally:
+        db.close()
+    
+    if compartment_available and not active_reservation:
+        return [compartment_available["id"], False]
+    return [False, active_reservation]
+
+def getAccountUnlockedDate(user_id):
+    db = get_db()
+    try:
+        deadline_date = db.execute(
+            "SELECT locked_deadline FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+    finally:
+        db.close()
+
+    if deadline_date is None or deadline_date["locked_deadline"] is None:
+        return None
+
+    deadline = datetime.strptime(deadline_date["locked_deadline"], "%Y-%m-%dT%H:%M:%SZ")
+    return deadline.strftime("%H:%M, %Y/%m/%d")
+
+def autoExpireReservations():
+    limit = (datetime.now(timezone.utc) - timedelta(minutes=RESERVATION_MINUTES)
+             ).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    db = get_db()
+    try:
+        check = db.execute("""
+            SELECT id, compartment_id, user_id
+            FROM reservations
+            WHERE status = 'active' AND created_at <= ?
+        """, (limit,)).fetchall()
+
+        for reservation in check:
+            db.execute("UPDATE reservations SET status = 'failed' WHERE id = ?",
+                       (reservation["id"],))
+            db.execute("UPDATE compartments SET status = 'empty' WHERE id = ?",
+                       (reservation["compartment_id"],))
+            db.execute("UPDATE users SET penalty_score = penalty_score + 1, streak = 0 WHERE id = ?",
+                       (reservation["user_id"],))
+
+        db.commit()
+        lockAccount(reservation["user_id"], db)
+        if check:
+            print(f"{len(check)} reservation(s) expired")
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+def lockAccount(user_id, db):
+    row = db.execute("SELECT penalty_score FROM users WHERE id = ?",
+                     (user_id,)).fetchone()
+    if row is None:
+        print("Problem occured while searching for user penalty_score")
+        return None
+
+    user_penalty_score = row["penalty_score"]
+    if user_penalty_score > 1:
+        # Compute the date until the user's account will be locked
+        hours = PENALTY_HOURS * (user_penalty_score - 1)
+        deadline_date = (datetime.now(timezone.utc) + timedelta(hours=hours)
+                        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        db.execute("UPDATE users SET is_locked = 1, locked_deadline = ? WHERE id = ?",
+                (deadline_date, user_id))
+        db.commit()
+
+def unlockUsersAccount():
+    date_now = (datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    db = get_db()
+
+    try:
+        db.execute(
+            "UPDATE users SET is_locked = 0, locked_deadline = NULL "
+            "WHERE is_locked = 1 AND locked_deadline <= ?",
+            (date_now,),
+            )
+        db.commit()
+    except Exception:
+        traceback.print_exc()
+        db.rollback()
+    finally:
+        db.close()
+
+
+#%% /////////////////////////////////////////////////////////////////////////////
+#%% /////////////////////// Reservation related routes //////////////////////////
+#%% /////////////////////////////////////////////////////////////////////////////
+@app.route("/cancel-reservations") 
+def cancel_reservations():
+    if not session.get("user_id"):
+        return jsonify(error="unauthorized"), 401
+
+    try:
+        autoExpireReservations()
+    except Exception:
+        traceback.print_exc()
+        return jsonify(error="could not expire reservations"), 500
+
+    return jsonify(ok=True)
+
+@app.route("/simulate-deposit")
+def simulateDeposit():
+    if not session.get("user_id"):
+        return render_template("errors/401.html"), 401
+    
+    db = get_db()
+    reservation = db.execute("SELECT id, compartment_id FROM reservations WHERE status = 'active' AND user_id = ?",
+                             (session["user_id"],)).fetchone()
+    
+    if reservation is None :
+        db.close()
+        return jsonify(error="You have no active reservation"), 404
+    else:
+        try:
+            db.execute("UPDATE reservations SET status = 'success' WHERE id = ?",
+                       (reservation["id"],))
+            db.execute("UPDATE compartments SET status = 'full' WHERE id = ?",
+                       (reservation["compartment_id"],))
+
+            if db.execute("SELECT streak FROM users WHERE id = ?", (session["user_id"],)).fetchone()["streak"] < 7:
+                db.execute("UPDATE users SET streak = streak + 1 WHERE id = ?",
+                        (session["user_id"],))
+            else:
+                db.execute("UPDATE users SET streak = 0, penalty_score = 0 WHERE id = ?",
+                            (session["user_id"],))
+            
+            db.commit()
+            return jsonify(message="The deposit has been successful")
+        except sqlite3.IntegrityError:
+            return jsonify(error="Couldn't modify the statuses"), 500
+        finally:
+            db.close()
+
+@app.route("/reserve-compartment")
+def reserve_compartment():
+    if not session.get("user_id"):
+        return jsonify(error="You must be logged in."), 401
+
+    locker_id = request.args.get("locker_id", type=int)
+    size = request.args.get("size", type=int)
+    if locker_id is None or size not in (1, 2, 3):
+        return jsonify(error="Invalid request."), 400
+
+    compartmentAvailable = checkReservationAvailability(locker_id, size, session["user_id"])
+    if not compartmentAvailable[0] and not compartmentAvailable[1]:
+        date = getAccountUnlockedDate(session.get("user_id"))
+        return jsonify(error=f"Your account is locked until {date}" if date else "Your account is locked."), 403
+    
+    if not compartmentAvailable[0]:
+        return jsonify(error="You can have only 1 reservation at the time"), 409
+
+    db = get_db()
+    try:
+        code = f"{randint(1000, 9999):04d}"
+        created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        db.execute(
+            "INSERT INTO reservations (user_id, compartment_id, created_at, code) VALUES (?,?,?,?)",
+            (session["user_id"], compartmentAvailable[0], created_at, code),
+        )
+        db.execute("UPDATE compartments SET status = 'reserved' WHERE id = ?", (compartmentAvailable[0],))
+        db.commit()
+    except sqlite3.IntegrityError:
+        traceback.print_exc()
+        db.rollback()
+        return jsonify(error="Someone just took this compartment, try another one"), 409
+    except Exception:
+        traceback.print_exc()
+        db.rollback()
+        return jsonify(error="Something went wrong, please try again"), 500
+    finally:
+        db.close()
+
+    return jsonify(message="Compartment reserved!"), 201
+
+
+
+#%% /////////////////////////////////////////////////////////////////////////////
+#%% ////////////////////////////// API routes ///////////////////////////////////
+#%% /////////////////////////////////////////////////////////////////////////////     
 @app.route("/api/get-lockers-info")
 def getlockers():
     if not session.get("user_id"):
@@ -209,125 +447,6 @@ def getlockers():
 
     return jsonify(lockers)
 
-#%% ///////////////////////////////////////////////////////////////////////////
-
-@app.route("/locker/<int:locker_id>")
-def locker_page(locker_id):
-    if not session.get("user_id"):
-        return redirect("/login")
-
-    db = get_db()
-    try:
-        locker = db.execute(
-            "SELECT * FROM lockers WHERE id = ?", (locker_id,)
-        ).fetchone()
-        if locker is None:
-            abort(404)
-
-        rows = db.execute(
-            "SELECT size, COUNT(*) AS n FROM compartments "
-            "WHERE locker_id = ? AND status = 'empty' GROUP BY size",
-            (locker_id,),
-        ).fetchall()
-    finally:
-        db.close()
-
-    free = {1: 0, 2: 0, 3: 0}
-    for r in rows:
-        free[r["size"]] = r["n"]
-
-    return render_template("locker.html", locker=locker, free=free)
-
-#%% ///////////////////////////////////////////////////////////////////////////
-
-def checkReservationAvailability(locker_id, size, user_id):
-    db = get_db()
-    
-    try:
-        # Checks if the user has an active penalty
-        user_locked = db.execute("SELECT is_locked FROM users WHERE id = ?",
-                                 (session.get("user_id"),)).fetchone()["is_locked"]
-        if user_locked : return [False,False]
-
-        # Checks if the compartment is still available in case someone reserved it at the same time
-        compartment_available = db.execute("""SELECT c.id 
-                                    FROM compartments c 
-                                    WHERE c.locker_id = ? AND c.size = ? AND c.status = 'empty' """,
-                                    (locker_id, size)).fetchone()
-        
-        # Checks if the user already has an actve reservation
-        active_reservation = db.execute("""SELECT * FROM reservations WHERE user_id = ? AND status='active' """, 
-                                       (user_id,)).fetchone()
-
-    finally:
-        db.close()
-    
-    if compartment_available and not active_reservation:
-        return [compartment_available["id"], False]
-    return [False, active_reservation]
-
-
-@app.route("/api/reserve-compartment")
-def reserve_compartment():
-    if not session.get("user_id"):
-        return jsonify(error="You must be logged in."), 401
-
-    locker_id = request.args.get("locker_id", type=int)
-    size = request.args.get("size", type=int)
-    if locker_id is None or size not in (1, 2, 3):
-        return jsonify(error="Invalid request."), 400
-
-    compartmentAvailable = checkReservationAvailability(locker_id, size, session["user_id"])
-    if not compartmentAvailable[0] and not compartmentAvailable[1]:
-        date = getAccountUnlockedDate(session.get("user_id"))
-        return jsonify(error=f"Your account is locked until {date}" if date else "Your account is locked."), 403
-    
-    if not compartmentAvailable[0]:
-        return jsonify(error="You can have only 1 reservation at the time"), 409
-
-    db = get_db()
-    try:
-        code = f"{randint(0, 9999):04d}"
-        created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        db.execute(
-            "INSERT INTO reservations (user_id, compartment_id, created_at, code) VALUES (?,?,?,?)",
-            (session["user_id"], compartmentAvailable[0], created_at, code),
-        )
-        db.execute("UPDATE compartments SET status = 'reserved' WHERE id = ?", (compartmentAvailable[0],))
-        db.commit()
-    except sqlite3.IntegrityError:
-        traceback.print_exc()
-        db.rollback()
-        return jsonify(error="Someone just took this compartment, try another one"), 409
-    except Exception:
-        traceback.print_exc()
-        db.rollback()
-        return jsonify(error="Something went wrong, please try again"), 500
-    finally:
-        db.close()
-
-    return jsonify(message="Compartment reserved!"), 201
-
-def getAccountUnlockedDate(user_id):
-    db = get_db()
-    try:
-        deadline_date = db.execute(
-            "SELECT locked_deadline FROM users WHERE id = ?", (user_id,)
-        ).fetchone()
-    finally:
-        db.close()
-
-    if deadline_date is None or deadline_date["locked_deadline"] is None:
-        return None  # utilisateur inconnu ou pas de blocage
-
-    deadline = datetime.strptime(deadline_date["locked_deadline"], "%Y-%m-%dT%H:%M:%SZ")
-    return deadline.strftime("%H:%M, %Y/%m/%d")
-
-
-#%% ///////////////////////////////////////////////////////////////////////////
-
-RESERVATION_MINUTES = 0.2
-
 @app.route("/api/get-reservation-info")
 def getReservationInfo():
     if not session.get("user_id"):
@@ -368,134 +487,51 @@ def getReservationInfo():
         seconds_left=seconds_left,
     )
 
-#%% ///////////////////////////////////////////////////////////////////////////    
-
-def auto_expire_reservations():
-    limit = (datetime.now(timezone.utc) - timedelta(minutes=RESERVATION_MINUTES)
-             ).strftime("%Y-%m-%dT%H:%M:%SZ")
-
+@app.route("/api/get-user-information")
+def getUserInfo():
+    unlockUsersAccount()
+    if not session.get("user_id") : 
+        return jsonify(error="unauthorized"), 401
+    
     db = get_db()
     try:
-        check = db.execute("""
-            SELECT id, compartment_id, user_id
-            FROM reservations
-            WHERE status = 'active' AND created_at <= ?
-        """, (limit,)).fetchall()
+        user_info = db.execute("SELECT penalty_score, locked_deadline, name, email, streak FROM users WHERE id = ?",
+                           (session.get("user_id"),)).fetchone()
 
-        for reservation in check:
-            db.execute("UPDATE reservations SET status = 'failed' WHERE id = ?",
-                       (reservation["id"],))
-            db.execute("UPDATE compartments SET status = 'empty' WHERE id = ?",
-                       (reservation["compartment_id"],))
-            db.execute("UPDATE users SET penalty_score = penalty_score + 1 WHERE id = ?",
-                       (reservation["user_id"],))
-
-        db.commit()
-        lockAccount(reservation["user_id"], db)
-        if check:
-            print(f"{len(check)} reservation(s) expired")
-    except Exception:
-        db.rollback()
-        raise
+    except sqlite3.IntegrityError:
+        traceback.print_exc()
+        return jsonify(error="Impossible to recover the user information from de database"), 500
     finally:
         db.close()
 
-
-@app.route("/cancel-reservations") 
-def cancel_reservations():
-    if not session.get("user_id"):
-        return jsonify(error="unauthorized"), 401
-
-    try:
-        auto_expire_reservations()
-    except Exception:
-        traceback.print_exc()
-        return jsonify(error="could not expire reservations"), 500
-
-    return jsonify(ok=True)
-
-def lockAccount(user_id, db):
-    row = db.execute("SELECT penalty_score FROM users WHERE id = ?",
-                     (user_id,)).fetchone()
-    if row is None:
-        print("Problem occured while searching for user penalty_score")
-        return None
-
-    user_penalty_score = row["penalty_score"]
-
-    # Compute the date until the user's account will be locked
-    hours = 24 * (user_penalty_score - 1)
-    deadline_date = (datetime.now(timezone.utc) + timedelta(hours=hours)
-                     ).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    db.execute("UPDATE users SET is_locked = 1, locked_deadline = ? WHERE id = ?",
-               (deadline_date, user_id))
-    db.commit()
-
-#%% ///////////////////////////////////////////////////////////////////////////    
-
-@app.route("/simulate-deposit")
-def simulateDeposit():
-    if not session.get("user_id"):
-        return render_template("errors/401.html"), 401
+    if user_info is None:
+        return jsonify(error="unknown user"), 401
     
-    db = get_db()
-    reservation = db.execute("SELECT id, compartment_id FROM reservations WHERE status = 'active' AND user_id = ?",
-                             (session["user_id"],)).fetchone()
-    
-    if reservation is None :
-        db.close()
-        return jsonify(error="You have no active reservation"), 404
-    else:
-        try:
-            db.execute("UPDATE reservations SET status = 'success' WHERE id = ?",
-                       (reservation["id"],))
-            db.execute("UPDATE compartments SET status = 'full' WHERE id = ?",
-                       (reservation["compartment_id"],))
-            
-            db.commit()
-            return jsonify(message="The deposit has been successful")
-        except sqlite3.IntegrityError:
-            return jsonify(error="Couldn't modify the statuses"), 500
-        finally:
-            db.close()
+    return jsonify(dict(user_info))
 
-#%% ///////////////////////////////////////////////////////////////////////////    
 
+
+#%% /////////////////////////////////////////////////////////////////////////////
+#%% //////////////////////////// Errors handling ////////////////////////////////
+#%% /////////////////////////////////////////////////////////////////////////////  
 @app.errorhandler(401)
 def unauthorized(error):
     return render_template("errors/401.html"), 401
-
 
 @app.errorhandler(403)
 def forbidden(error):
     return render_template("errors/403.html"), 403
 
-
 @app.errorhandler(404)
 def not_found(error):
     return render_template("errors/404.html"), 404
-
 
 @app.errorhandler(500)
 def internal_error(error):
     return render_template("errors/500.html"), 500
 
-if __name__ == "__main__":
-    app.run(port=3000, debug=False)
-    
-    
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+#%% /////////////////////////////////////////////////////////////////////////////   
+if __name__ == "__main__":
+    app.run(port=3000, debug=False)    

@@ -1,11 +1,11 @@
 :root {
-  --bg: #f3ebe2;
+  --bg: #FAF3E7;
   --surface: #fbf7f2;
   --line: #dccfc1;
   --text: #4a3428;
-  --muted: #8b6b55;
-  --accent: #6f4e37;
-  --accent-dark: #522005;
+  --muted: #4a3428;
+  --accent: #4a3428;
+  --accent-dark: #4a3428;
   --alert: #b3402a;
   --nav-h: 76px;
   --header-h: 64px;
@@ -71,6 +71,10 @@ header {
   border-radius: 14px;
   padding: 20px;
   margin-bottom: 14px;
+}
+
+#locker-list .locker-item {
+    border-left: 5px solid var(--accent);
 }
 
 /* ---------- Carte ---------- */
@@ -341,9 +345,14 @@ l'emporter sur "#locker-list li" qui a padding: 20px) */
   margin-bottom: 10px;
 }
 
+.locker-card-div {
+  border-left: 2px #4a3428;
+}
+
 .locker-item p,
 .locker-item div {
   line-height: 1.3;
+
 }
 
 .locker-bars {
@@ -384,10 +393,6 @@ l'emporter sur "#locker-list li" qui a padding: 20px) */
   border: none;
 }
 
-.locker-marker {
-  background: none;
-  border: none;
-}
 
 .lk-wrap {
   position: relative;
@@ -769,4 +774,73 @@ l'emporter sur "#locker-list li" qui a padding: 20px) */
 }
 .view::-webkit-scrollbar {
   display: none;               
+}
+
+
+/* ---------- Infos utilisateur (settings) ---------- */
+#user-name-set,
+#user-email-set {
+  margin-bottom: 8px;
+  padding: 12px 16px;
+  font-size: 17px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow-wrap: anywhere;      /* un long email ne déborde pas */
+}
+
+/* ---------- Bloc pénalité ---------- */
+#user-penalty-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+}
+
+#user-penalty-info p {
+  margin: 0;
+  font-size: 17px;
+  color: var(--text);
+}
+
+/* Score : mis en avant */
+#user-penalty-info p:first-child {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--accent-dark);
+}
+
+/* Avertissement (1 point) */
+#user-penalty-info .penalty-warning {
+  padding: 12px 14px;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1.4;
+  color: var(--alert);
+  background: #fbe9e5;
+  border: 2px solid var(--alert);
+  border-left-width: 6px;
+  border-radius: 12px;
+}
+
+/* Temps restant de la pénalité */
+#user-penalty-info .penalty-locked {
+  padding: 10px 14px;
+  font-size: 18px;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;   /* chiffres de largeur fixe */
+  color: #fff;
+  background: var(--alert);
+  border-radius: 12px;
+  text-align: center;
+}
+
+/* Bloc vide (pas encore chargé) : on le cache */
+#user-penalty-info:empty {
+  display: none;
 }

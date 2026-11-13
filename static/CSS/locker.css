@@ -1,128 +1,477 @@
+
+/* =====================================
+   LOCK-E — MODERN DASHBOARD CLEAN
+   ===================================== */
+
 :root {
-        --bg: #f3ebe2;
-        --surface: #fbf7f2;
-        --line: #dccfc1;
-        --text: #4a3428;
-        --muted: #8b6b55;
-        --accent: #6f4e37;
-        --accent-dark: #522005;
-        --alert: #b3402a;
-      }
+  --bg: #FAF3E7;
+  --surface: #fbf7f2;
+  --surface-alt: #fbf7f2;
+  --surface-hover: #533f331f;
 
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
+  --text: #4a3428;
+  --muted: #4a3428;
 
-      body {
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: 18px;
-        background: var(--bg);
-        color: var(--text);
-        padding: 20px;
-        min-height: 100dvh;
-      }
+  --accent: #4a3428;
+  --accent-dark: #4a3428;
 
-      /* ---------- Bouton retour ---------- */
-      .back {
-        width: 52px;
-        height: 52px;
-        margin-bottom: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--accent);
-        background: var(--surface);
-        border: 2px solid var(--accent);
-        border-radius: 50%;
-        text-decoration: none;
-      }
-      .back svg {
-        width: 28px;
-        height: 28px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 2;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
+  --line: #E7D8C3;
+  --ok: #587A55;
+  --alert: #B85D47;
 
-      /* ---------- En-tête du locker ---------- */
-      h1 {
-        font-size: 34px;
-        line-height: 1.2;
-        margin-bottom: 8px;
-      }
-      .provider {
-        color: var(--muted);
-        text-transform: capitalize;
-        margin-bottom: 4px;
-      }
-      .distance {
-        color: var(--muted);
-        font-size: 16px;
-        margin-bottom: 32px;
-      }
+  --radius: 16px;
+  --shadow: 0 12px 32px rgba(117, 69, 35, 0.09);
+}
 
-      h2 {
-        font-size: 22px;
-        margin-bottom: 12px;
-      }
+/* =====================================
+   BASE
+   ===================================== */
 
-      /* ---------- Choix de la taille ---------- */
-      .choice-group {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 28px;
-      }
-      .choice {
-        flex: 1;
-        padding: 14px 6px;
-        font: inherit;
-        font-size: 17px;
-        color: var(--accent);
-        background: var(--surface);
-        border: 2px solid var(--accent);
-        border-radius: 18px;
-        cursor: pointer;
-      }
-      .choice small {
-        display: block;
-        margin-top: 2px;
-        font-size: 13px;
-        color: var(--muted);
-      }
-      .choice.selected {
-        color: var(--surface);
-        background: var(--accent);
-      }
-      .choice.selected small {
-        color: var(--surface);
-      }
-      .choice:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-        border-style: dashed;
-      }
-      .choice:disabled small {
-        color: var(--alert);
-      }
+* {
+  box-sizing: border-box;
+}
 
-      /* ---------- Bouton Reserve ---------- */
-      .btn {
-        display: block;
-        width: 100%;
-        padding: 16px 24px;
-        font: inherit;
-        text-align: center;
-        color: var(--bg);
-        background: var(--accent-dark);
-        border: 2px solid var(--accent);
-        border-radius: 999px;
-        cursor: pointer;
-      }
-      .btn:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-      }
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 36px 20px 55px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  background: var(--bg);
+  color: var(--text);
+
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =====================================
+   BOUTON RETOUR — À GAUCHE
+   ===================================== */
+
+.back {
+  width: min(100%, 650px);
+  height: 42px;
+  margin: 0 auto 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  color: var(--accent-dark);
+  text-decoration: none;
+
+  transition: opacity 0.2s ease;
+}
+
+.back::before {
+  content: "";
+  position: absolute;
+}
+
+.back svg {
+  display: block;
+  width: 23px;
+  height: 23px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  transition: transform 0.2s ease;
+}
+
+.back:hover {
+  opacity: 0.75;
+}
+
+.back:hover svg {
+  transform: translateX(-4px);
+}
+
+.back:focus-visible {
+  outline: 3px solid #c18a5b;
+  outline-offset: 4px;
+}
+
+/* =====================================
+   CARTE PRINCIPALE
+   ===================================== */
+
+#locker {
+  width: 100%;
+  max-width: 650px;
+  padding: 36px;
+
+  background: var(--surface);
+  border: 1px solid rgba(111, 67, 40, 0.08);
+  border-radius: 22px;
+
+  box-shadow: var(--shadow);
+}
+
+/* =====================================
+   TITRE
+   ===================================== */
+
+#locker h1 {
+  margin: 0 0 16px;
+
+  color: var(--text);
+
+  font-size: clamp(27px, 5vw, 36px);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -1px;
+
+  overflow-wrap: anywhere;
+}
+
+/* =====================================
+   FOURNISSEUR
+   ===================================== */
+
+.provider {
+  display: inline-flex;
+  align-items: center;
+
+  margin: 0 0 12px;
+  padding: 8px 13px;
+
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+/* =====================================
+   DISTANCE — TEXTE SIMPLE EN GRAS
+   ===================================== */
+
+.distance {
+  margin: 0 0 32px;
+  padding: 0;
+
+  background: none;
+  border: none;
+
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+/* =====================================
+   TITRE DES TAILLES
+   ===================================== */
+
+#locker h2 {
+  margin: 0 0 17px;
+
+  color: var(--text);
+
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -0.3px;
+}
+
+/* =====================================
+   GRILLE DES TAILLES
+   ===================================== */
+
+#sizes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+
+  margin-bottom: 28px;
+}
+
+/* =====================================
+   CARTES DE TAILLES
+   ===================================== */
+
+.choice {
+  min-width: 0;
+  min-height: 112px;
+  padding: 17px 10px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  background: #fffdfb;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+
+  color: var(--text);
+
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 750;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* Texte du stock */
+
+.choice small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Survol d'une carte non sélectionnée */
+
+.choice:hover:not(:disabled):not(.selected) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--text);
+  transform: translateY(-2px);
+}
+
+.choice:hover:not(:disabled):not(.selected) small {
+  color: var(--muted);
+}
+
+/* Carte sélectionnée */
+
+.choice.selected {
+  background: var(--accent-dark);
+  border: 2px solid var(--accent-dark);
+
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(82, 32, 5, 0.2);
+}
+
+.choice.selected small {
+  color: #f3e6d9;
+}
+
+/* IMPORTANT :
+   Le survol ne change PAS la carte sélectionnée */
+
+.choice.selected:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: #fff;
+
+  transform: none;
+  box-shadow: 0 5px 14px rgba(82, 32, 5, 0.2);
+}
+
+.choice.selected:hover small {
+  color: #f3e6d9;
+}
+
+/* Cartes indisponibles */
+
+.choice:disabled {
+  background: #eee9e3;
+  border-color: #e0d8cf;
+
+  color: #91847a;
+  opacity: 0.7;
+
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.choice:disabled small {
+  color: #91847a;
+}
+
+/* =====================================
+   BOUTON RÉSERVER
+   ===================================== */
+
+.btn {
+  width: 100%;
+  min-height: 55px;
+  padding: 15px 22px;
+
+  background: var(--accent-dark);
+  border: none;
+  border-radius: 12px;
+
+  color: #fff;
+
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 750;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: #713719;
+  transform: translateY(-2px);
+  box-shadow: 0 7px 16px rgba(82, 32, 5, 0.16);
+}
+
+.btn:disabled {
+  background: #cbbbad;
+  color: #f8f3ee;
+
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* =====================================
+   ACCESSIBILITÉ
+   ===================================== */
+
+.choice:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid #c18a5b;
+  outline-offset: 3px;
+}
+
+/* =====================================
+   TABLETTES ET MOBILES
+   ===================================== */
+
+@media (max-width: 600px) {
+  body {
+    padding: 24px 14px 35px;
+  }
+
+  #locker {
+    padding: 26px 20px;
+    border-radius: 19px;
+  }
+
+  #locker h1 {
+    font-size: 28px;
+  }
+
+  #sizes {
+    gap: 9px;
+  }
+
+  .choice {
+    min-height: 100px;
+    padding: 13px 5px;
+    font-size: 14px;
+  }
+
+  .choice small {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 350px) {
+  #sizes {
+    grid-template-columns: 1fr;
+  }
+
+  .choice {
+    min-height: 75px;
+  }
+}
+
+
+/* Écran de réservation plein format */
+
+body {
+  min-height: 100vh;
+  padding: 24px 20px 120px;
+  align-items: center;
+  background: var(--bg);
+}
+
+/* On enlève l'effet de grande carte centrée */
+
+#locker {
+  width: 100%;
+  max-width: 520px;
+  padding: 20px 0 30px;
+  margin: 0 auto;
+
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Retour aligné à gauche */
+
+.back {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto 12px;
+  align-self: center;
+}
+
+/* Plus d'espace pour le contenu */
+
+.distance {
+  margin-bottom: 38px;
+}
+
+/* Bouton fixe en bas de l'écran */
+
+#reserve-btn {
+  position: fixed;
+  z-index: 100;
+  left: 50%;
+  bottom: 0;
+
+  width: min(100% - 32px, 488px);
+  min-height: 58px;
+  margin: 0 0 calc(16px + env(safe-area-inset-bottom));
+
+  transform: translateX(-50%);
+
+  border-radius: 14px;
+  box-shadow: 0 5px 22px rgba(82, 32, 5, 0.22);
+}
+
+/* Ne pas déplacer le bouton au survol */
+
+#reserve-btn:hover:not(:disabled) {
+  transform: translateX(-50%);
+}
+
+/* Adaptation téléphone */
+
+@media (max-width: 600px) {
+  body {
+    padding: 18px 20px 125px;
+  }
+
+  #locker {
+    padding-top: 18px;
+  }
+
+  #sizes {
+    gap: 9px;
+  }
+}
