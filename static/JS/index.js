@@ -50,6 +50,30 @@ document
 
 
 // ///////////////////////////////////////////////////////////////////////////
+// /////////////////////// Simulate Worker Button ////////////////////////////
+// ///////////////////////////////////////////////////////////////////////////
+
+document.getElementById("simulate-worker-btn").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+
+  try {
+    const res = await fetch("/simulate-worker");
+    const data = await res.json();
+    alert(res.ok ? data.message : data.error);
+
+    if (res.ok) {
+      displayUserInfo();
+      displayBookingInfo();
+    }
+  } catch {
+    alert("Connection impossible.");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ///////////////////////////////////////////////////////////////////////////
 // ////////////////////// Displaying locker list  ////////////////////////////
 // ///////////////////////////////////////////////////////////////////////////
   
@@ -249,6 +273,7 @@ async function displayUserInfo() {
 
     // Exactement 1 point : simple avertissement
     if (user.penalty_score === 1) {
+      addLine(`Streak : ${user.streak}/7 successful reservation in a row`);
       addLine(
         "Warning: your next missed reservation will lock your account for 24h.",
         "penalty-warning",
@@ -294,7 +319,7 @@ async function simulateDeposit() {
       alert(data.error);
     }
   } catch {
-    alert("Connection with the database imposible");
+    alert("Connection with the database impossible");
   }
   displayUserInfo();
 }

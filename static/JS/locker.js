@@ -68,3 +68,32 @@ reserveBtn.addEventListener("click", async () => {
     reserveBtn.disabled = false;
   }
 });
+
+// ---------- Free a compartment ----------
+document.querySelectorAll(".free-btn").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const size = Number(btn.dataset.size);
+    btn.disabled = true;
+
+    try {
+      const res = await fetch("/free-compartment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locker_id: Number(locker.dataset.id), size }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        const choice = document.querySelector(`.choice[data-size="${size}"]`);
+        choice.disabled = false;
+        choice.querySelector("small").textContent = `${data.free} left`;
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert("Connection impossible.");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});

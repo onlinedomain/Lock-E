@@ -28,15 +28,18 @@
       <h2>Choose a size</h2>
       <div class="choice-group" id="sizes">
         {% for value, label in [(1, "Small"), (2, "Medium"), (3, "Big")] %}
-        <button
-          type="button"
-          class="choice"
-          data-size="{{ value }}"
-          {% if free[value] == 0 %}disabled{% endif %}
-        >
-          {{ label }}
-          <small>{% if free[value] > 0 %}{{ free[value] }} left{% else %}Full{% endif %}</small>
-        </button>
+        <div class="size-col">
+          <button
+            type="button"
+            class="choice"
+            data-size="{{ value }}"
+            {{ "disabled" if free[value] == 0 }}
+          >
+            {{ label }}
+            <small>{{ free[value] ~ " left" if free[value] > 0 else "Full" }}</small>
+          </button>
+          <button type="button" class="free-btn" data-size="{{ value }}">Free one</button>
+        </div>
         {% endfor %}
       </div>
 

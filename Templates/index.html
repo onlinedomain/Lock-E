@@ -63,7 +63,7 @@
 
       <details id="penalty-rules">
         <summary>Rules and penalty score</summary>
-
+        <h2>Reservation rules</h2>
         <p>
           This app allows you to reserve lockers from your phone. To avoid an abusive
           number of reservations, the rules are the following:
@@ -131,6 +131,7 @@
         <h4 id="user-email-set">emailtest</h4>
         <a class="btn" onclick=log_out()>Log out</a>
       </div>
+      <button type="button" class="btn" id="simulate-worker-btn">Simulate worker</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -139,6 +140,7 @@
       initMap();
       displayLockersOnMap();
       displayUserLocation();
+
       async function log_out(){
         localStorage.clear();
         await fetch("/logout");

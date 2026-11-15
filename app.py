@@ -260,9 +260,9 @@ def autoExpireReservations():
                        (reservation["compartment_id"],))
             db.execute("UPDATE users SET penalty_score = penalty_score + 1, streak = 0 WHERE id = ?",
                        (reservation["user_id"],))
+            lockAccount(reservation["user_id"], db)
 
         db.commit()
-        lockAccount(reservation["user_id"], db)
         if check:
             print(f"{len(check)} reservation(s) expired")
     except Exception:
@@ -397,6 +397,46 @@ def reserve_compartment():
 
     return jsonify(message="Compartment reserved!"), 201
 
+@app.route("/free-compartment", methods=["POST"])
+def free_compartment():
+    if not session.get("user_id"):
+        return jsonify(error="You must be logged in."), 401
+
+    data = request.get_json(silent=True) or {}
+    locker_id = data.get("locker_id")
+    size = data.get("size")
+    if not isinstance(locker_id, int) or size not in (1, 2, 3):
+        return jsonify(error="Invalid request."), 400
+
+    db = get_db()
+    try:
+        row = db.execute(
+            """SELECT id FROM compartments
+               WHERE locker_id = ? AND size = ? AND status = 'full'
+               ORDER BY number LIMIT 1""",
+            (locker_id, size),
+        ).fetchone()
+
+        if row is None:
+            return jsonify(error="No occupied compartment of this size."), 404
+
+        db.execute("UPDATE compartments SET status = 'empty' WHERE id = ?", (row["id"],))
+        db.commit()
+
+        free = db.execute(
+            """SELECT COUNT(*) AS n FROM compartments
+               WHERE locker_id = ? AND size = ? AND status = 'empty'""",
+            (locker_id, size),
+        ).fetchone()["n"]
+    except Exception:
+        traceback.print_exc()
+        db.rollback()
+        return jsonify(error="Something went wrong, please try again."), 500
+    finally:
+        db.close()
+
+    return jsonify(free=free)
+
 
 
 #%% /////////////////////////////////////////////////////////////////////////////
@@ -529,6 +569,25 @@ def not_found(error):
 @app.errorhandler(500)
 def internal_error(error):
     return render_template("errors/500.html"), 500
+
+
+
+#%% /////////////////////////////////////////////////////////////////////////////
+#%% //////////////////////////// Simulate Worker ////////////////////////////////
+#%% /////////////////////////////////////////////////////////////////////////////  
+@app.route("/simulate-worker")
+def simulateWorker():
+    if not session.get("user_id"):
+        return jsonify(error="unauthorized"), 401
+
+    try:
+        autoExpireReservations()
+        unlockUsersAccount()
+    except Exception:
+        traceback.print_exc()
+        return jsonify(error="Worker error, see the Flask terminal."), 500
+
+    return jsonify(message="Worker executed.")
 
 
 
