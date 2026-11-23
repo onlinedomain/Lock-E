@@ -1,9 +1,0 @@
-Longitude, Latitude, Nom
-128.484339, 35.853235, Dongyeong Hall Locker
-128.486057, 35.854292, Baueo Hall Locker
-128.488868, 35.855714, Haeongso Hall Locker
-128.489087, 35.858731, Yeonong Hall Locker
-128.485223, 35.855292, Bonggyeong Hall Locker
-128.480180, 35.857048, Myeonggyo Dormitory Locker
-128.482317, 35.854705, Bosan Hall Locker
-128.487938, 35.854092, Dongcheon Hall Locker
