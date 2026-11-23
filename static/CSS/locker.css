@@ -1,4 +1,6 @@
 
+@import url("https://fonts.googleapis.com/css2?family=Stardos+Stencil:wght@700&family=Work+Sans:wght@400;500&display=swap");
+
 /* =====================================
    LOCK-E — MODERN DASHBOARD CLEAN
    ===================================== */
@@ -501,4 +503,79 @@ body {
 .free-btn:disabled {
   opacity: 0.5;
   cursor: wait;
+}
+
+/* ---------- Sponsored advertisements ---------- */
+
+.ad-card {
+  --kraft: #c99a5b;
+  --ink: #1f1a14;
+  --tape: #f4c20d;
+  --paper: #fbf5e6;
+
+  position: relative;
+  box-sizing: border-box;
+  width: min(100% - 2rem, 26rem);
+  margin: 2rem auto;
+  padding: 4.25rem 1.75rem 1.75rem;
+  overflow: hidden;
+  border-radius: 4px;
+  color: var(--ink);
+  font-family: "Work Sans", system-ui, sans-serif;
+  /* carton ondulé : fines cannelures verticales */
+  background:
+    repeating-linear-gradient(90deg, rgba(60, 35, 10, 0.07) 0 2px, transparent 2px 7px),
+    var(--kraft);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 14px 24px -10px rgba(60, 35, 10, 0.55);
+}
+
+/* le ruban adhésif qui ferme le colis : c'est lui qui porte le mot "Sponsored" */
+.ad-label {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: flex;
+  align-items: center;
+  height: 2.5rem;
+  padding: 0 1.75rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent 45%),
+    var(--tape);
+  box-shadow: 0 3px 5px rgba(60, 35, 10, 0.3);
+  font-family: "Stardos Stencil", Impact, sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.ad-content h2 {
+  margin: 0 0 0.75rem;
+  font-family: "Stardos Stencil", Impact, sans-serif;
+  font-size: clamp(3rem, 14vw, 4.25rem);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.ad-description {
+  margin: 0 0 1.5rem;
+  max-width: 30ch;
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* le tampon d'expédition */
+.ad-tagline {
+  display: inline-block;
+  margin: 0;
+  padding: 0.5rem 0.9rem;
+  border: 2px dashed var(--ink);
+  border-radius: 2px;
+  background: var(--paper);
+  font-family: "Stardos Stencil", Impact, sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  transform: rotate(-2deg);
 }

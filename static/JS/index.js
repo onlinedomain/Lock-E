@@ -1,4 +1,117 @@
 // ///////////////////////////////////////////////////////////////////////////
+// ////////////////////////// Provider Filter ////////////////////////////////
+// ///////////////////////////////////////////////////////////////////////////
+const ALL_PROVIDERS = ["mondial_relay", "vinted_go", "pickup"];
+const FILTER_KEY = "provider_filter";
+
+function loadProviderFilter() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FILTER_KEY));
+    if (Array.isArray(saved)) {
+      const valid = saved.filter((p) => ALL_PROVIDERS.includes(p));
+      if (valid.length) return valid;
+    }
+  } catch {}
+  return [...ALL_PROVIDERS];
+}
+
+const activeProviders = new Set(loadProviderFilter());
+
+function applyProviderFilter(lockers) {
+  return lockers.filter(
+    (l) =>
+      activeProviders.has(l.locker_brand) &&
+      l.distance_to_user_km <= maxDistanceKm,
+  );
+}
+
+function refreshFilterUI() {
+  document.querySelectorAll(".filter-chip").forEach((c) =>
+    c.classList.toggle("selected", activeProviders.has(c.dataset.provider)),
+  );
+  // pastille rouge sur les boutons quand un filtre est actif
+  document.querySelectorAll(".filter-open").forEach((b) =>
+    b.classList.toggle("filtered", activeProviders.size < ALL_PROVIDERS.length),
+  );
+}
+
+const filterPanel = document.getElementById("filter-panel");
+const distance_filter = document.getElementById("distance-filter");
+
+document.querySelectorAll(".filter-open").forEach((b) =>
+  b.addEventListener("click", () => (filterPanel.hidden = false)
+));
+
+document.getElementById("filter-close").addEventListener("click", () => (filterPanel.hidden = true));
+filterPanel.addEventListener("click", (e) => {
+  if (e.target === filterPanel) filterPanel.hidden = true;
+});
+
+document.querySelectorAll(".filter-chip").forEach((chip) =>
+  chip.addEventListener("click", () => {
+    const p = chip.dataset.provider;
+    if (activeProviders.has(p)) {
+      if (activeProviders.size === 1) return;
+      activeProviders.delete(p);
+    } else {
+      activeProviders.add(p);
+    }
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify([...activeProviders]));
+    } catch {}
+    refreshFilterUI();
+    if (map) displayLockersOnMap();
+    displayLockersList();
+  }),
+);
+
+refreshFilterUI();
+
+const DISTANCE_KEY = "distance_filter";
+const MAX_DISTANCE = 50;
+
+function loadDistanceFilter() {
+  const n = Number(localStorage.getItem(DISTANCE_KEY));
+  return n >= 1 && n <= MAX_DISTANCE ? n : MAX_DISTANCE;
+}
+
+let maxDistanceKm = loadDistanceFilter();
+
+const distanceRange = document.getElementById("distance-range");
+const distanceValue = document.getElementById("distance-value");
+
+function refreshDistanceUI() {
+  distanceRange.value = maxDistanceKm;
+  distanceValue.textContent =
+    maxDistanceKm >= MAX_DISTANCE ? "50 km (no limit)" : `${maxDistanceKm} km`;
+  // met à jour la pastille des boutons de filtre
+  document.querySelectorAll(".filter-open").forEach((b) =>
+    b.classList.toggle(
+      "filtered",
+      activeProviders.size < ALL_PROVIDERS.length || maxDistanceKm < MAX_DISTANCE,
+    ),
+  );
+}
+
+distanceRange.addEventListener("input", () => {
+  maxDistanceKm = Number(distanceRange.value);
+  refreshDistanceUI();
+});
+
+distanceRange.addEventListener("change", () => {
+  try {
+    localStorage.setItem(DISTANCE_KEY, String(maxDistanceKm));
+  } catch {}
+  if (map) displayLockersOnMap();
+  displayLockersList();
+});
+
+refreshDistanceUI();
+
+
+
+
+// ///////////////////////////////////////////////////////////////////////////
 // ////////////////////// Navigating on the page /////////////////////////////
 // ///////////////////////////////////////////////////////////////////////////
 
@@ -100,6 +213,7 @@ async function displayLockersList() {
     );
     if (!res.ok) throw new Error(res.status);
     lockers = await res.json();
+    lockers = applyProviderFilter(lockers);
   } catch (err) {
     list.innerHTML = "<li>Could not load lockers.</li>";
     return;
@@ -231,7 +345,7 @@ async function displayBookingInfo() {
     if (left === 0) {
       clearInterval(bookingTimer);
       box.innerHTML = "<p>Your booking has expired</p>";
-      await fetch("/cancel-reservations").catch(console.error);
+      await fetch("/close-reservations").catch(console.error);
       displayUserInfo();
     }
   }
@@ -239,6 +353,62 @@ async function displayBookingInfo() {
   tick();
   bookingTimer = setInterval(tick, 1000);
 }
+
+async function displayHistory() {
+  const list = document.getElementById("history-list");
+
+  try {
+    const res = await fetch("/api/get-history");
+    if (!res.ok) throw new Error(res.status);
+    const items = await res.json();
+
+    if (items.length === 0) {
+      const li = document.createElement("li");
+      li.className = "history-empty";
+      li.textContent = "No reservation in the last 2 weeks.";
+      list.replaceChildren(li);
+      return;
+    }
+
+    const pad = (n) => String(n).padStart(2, "0");
+
+    const rows = items.map((it) => {
+      const d = new Date(it.time); // "...Z" = UTC, converti en heure locale
+      const when = `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+      const li = document.createElement("li");
+      li.className = "history-item";
+
+      const letter = document.createElement("span");
+      letter.className = "history-letter";
+      letter.textContent = it.letter;
+
+      const info = document.createElement("div");
+      info.className = "history-info";
+      const name = document.createElement("strong");
+      name.textContent = it.location_name;
+      const date = document.createElement("small");
+      date.textContent = when;
+      info.append(name, date);
+
+      const status = document.createElement("span");
+      status.className = `history-status ${it.status.toLowerCase()}`;
+      status.textContent = it.status;
+
+      li.append(letter, info, status);
+      return li;
+    });
+
+    list.replaceChildren(...rows);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// Recharge à chaque ouverture du menu (le statut évolue avec le temps)
+document.querySelector(".history-card").addEventListener("toggle", (e) => {
+  if (e.target.open) displayHistory();
+});
 
 
 
@@ -480,6 +650,7 @@ async function displayLockersOnMap() {
     );
     if (!res.ok) throw new Error(res.status);
     lockers = await res.json();
+    lockers = applyProviderFilter(lockers);
   } catch (err) {
     console.error("Could not load lockers", err);
     return;

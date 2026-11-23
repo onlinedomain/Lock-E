@@ -254,8 +254,8 @@ def autoExpireReservations():
         """, (limit,)).fetchall()
 
         for reservation in check:
-            db.execute("UPDATE reservations SET status = 'failed' WHERE id = ?",
-                       (reservation["id"],))
+            db.execute("UPDATE reservations SET status = 'failed', deposited_at = ? WHERE id = ?",
+                       (limit,reservation["id"],))
             db.execute("UPDATE compartments SET status = 'empty' WHERE id = ?",
                        (reservation["compartment_id"],))
             db.execute("UPDATE users SET penalty_score = penalty_score + 1, streak = 0 WHERE id = ?",
@@ -310,8 +310,8 @@ def unlockUsersAccount():
 #%% /////////////////////////////////////////////////////////////////////////////
 #%% /////////////////////// Reservation related routes //////////////////////////
 #%% /////////////////////////////////////////////////////////////////////////////
-@app.route("/cancel-reservations") 
-def cancel_reservations():
+@app.route("/close-reservations") 
+def close_reservations():
     if not session.get("user_id"):
         return jsonify(error="unauthorized"), 401
 
@@ -337,8 +337,9 @@ def simulateDeposit():
         return jsonify(error="You have no active reservation"), 404
     else:
         try:
-            db.execute("UPDATE reservations SET status = 'success' WHERE id = ?",
-                       (reservation["id"],))
+            date_now = (datetime.now(timezone.utc)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            db.execute("UPDATE reservations SET status = 'success', deposited_at = ? WHERE id = ?",
+                       (date_now,reservation["id"],))
             db.execute("UPDATE compartments SET status = 'full' WHERE id = ?",
                        (reservation["compartment_id"],))
 
@@ -549,6 +550,51 @@ def getUserInfo():
     
     return jsonify(dict(user_info))
 
+@app.route("/api/get-history")
+def getHistory():
+    if not session.get("user_id"):
+        return jsonify(error="unauthorized"), 401
+
+    now = datetime.now(timezone.utc)
+    limit = (now - timedelta(days=14)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    db = get_db()
+    try:
+        rows = db.execute("""
+            SELECT r.status, r.created_at, r.deposited_at,
+                   l.provider, l.location_name
+            FROM reservations r
+            JOIN compartments c ON c.id = r.compartment_id
+            JOIN lockers l ON l.id = c.locker_id
+            WHERE r.user_id = ? AND r.status != 'active' AND r.created_at >= ?
+            ORDER BY r.created_at DESC
+        """, (session["user_id"], limit)).fetchall()
+    finally:
+        db.close()
+
+    fmt = "%Y-%m-%dT%H:%M:%SZ"
+    history = []
+    for r in rows:
+        created = datetime.strptime(r["created_at"], fmt).replace(tzinfo=timezone.utc)
+
+        if r["status"] == "failed":
+            event = created + timedelta(minutes=RESERVATION_MINUTES)  # heure d'expiration
+            status = "Expired"
+        else:
+            event = (datetime.strptime(r["deposited_at"], fmt).replace(tzinfo=timezone.utc)
+                     if r["deposited_at"] else created)
+            minutes = (now - event).total_seconds() / 60
+            status = "Delivered" if minutes > 5 else "Shipping" if minutes > 2 else "Deposited"
+
+        history.append({
+            "letter": r["provider"][0].upper(),      # M, V ou P
+            "location_name": r["location_name"],
+            "time": event.strftime(fmt),
+            "status": status,
+        })
+
+    return jsonify(history)
+
 
 
 #%% /////////////////////////////////////////////////////////////////////////////
@@ -590,6 +636,91 @@ def simulateWorker():
     return jsonify(message="Worker executed.")
 
 
+
+#%% /////////////////////////////////////////////////////////////////////////////
+#%% ////////////////////////////// Recovery mail ////////////////////////////////
+#%% /////////////////////////////////////////////////////////////////////////////
+from urllib.parse import quote # Useful to encode a string into an URL readable by the browser
+BASE_URL = "https://marius5.pythonanywhere.com/"
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+
+        db = get_db()
+        try:
+            user = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        finally:
+            db.close()
+
+        if user:
+            try:
+                send_reset_email(email, f"{BASE_URL}/reset-password?email={quote(email)}")
+            except Exception:
+                traceback.print_exc()
+
+        return render_template("forgot_password.html",
+                               message="A reset link has been sent !")
+
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    email = (request.values.get("email") or "").strip()
+    if not email:
+        return render_template("reset_password.html", invalid=True), 400
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm", "")
+
+        if len(password) < 8:
+            return render_template("reset_password.html", email=email,
+                                   error="Password must be at least 8 characters.")
+        if password != confirm:
+            return render_template("reset_password.html", email=email,
+                                   error="Passwords do not match.")
+
+        db = get_db()
+        try:
+            db.execute("UPDATE users SET password_hash = ? WHERE email = ?",
+                       (generate_password_hash(password), email))
+            db.commit()
+        finally:
+            db.close()
+        return redirect("/login")
+
+    return render_template("reset_password.html", email=email)
+
+
+import smtplib
+from email.message import EmailMessage
+
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 465
+SMTP_USER = "lockerecoveryassistant@gmail.com" # Should be in a environment variable
+SMTP_PASSWORD = "tvca hdac yrgx zujo"   # Should be in a environment variable
+
+def send_reset_email(to_email, link):
+    msg = EmailMessage()
+    msg["Subject"] = "Reset your Lock-E password"
+    msg["From"] = SMTP_USER
+    msg["To"] = to_email
+    msg.set_content(f"Reset your password: {link}\nThis link expires in 30 minutes.")
+    msg.add_alternative(f"""\
+<html><body style="font-family:Georgia,serif;color:#4a3428">
+  <h2>Reset your password</h2>
+  <p>Click the button below to choose a new password. The link expires in 30 minutes.</p>
+  <p><a href="{link}" style="display:inline-block;padding:14px 28px;background:#522005;
+     color:#f3ebe2;text-decoration:none;border-radius:999px">Reset password</a></p>
+  <p style="color:#8b6b55">If you did not request this, ignore this email.</p>
+</body></html>""", subtype="html")
+
+    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as server:
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.send_message(msg)
 
 #%% /////////////////////////////////////////////////////////////////////////////   
 if __name__ == "__main__":
