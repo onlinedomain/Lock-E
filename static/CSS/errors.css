@@ -1,0 +1,167 @@
+
+:root {
+    --bg: #f3ebe2;
+    --surface: #fbf7f2;
+    --line: #dccfc1;
+    --text: #4a3428;
+    --muted: #8b6b55;
+    --accent: #6f4e37;
+    --accent-dark: #522005;
+    --alert: #b3402a;
+    --nav-h: 76px;
+    --header-h: 64px;
+}
+
+/* RESET */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* GLOBAL */
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+}
+
+/* ERROR CONTAINER */
+
+.error-container {
+    width: 100%;
+    max-width: 650px;
+
+    text-align: center;
+
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+
+    padding: 60px 35px;
+
+    box-shadow: 0 15px 45px rgba(74, 52, 40, 0.07);
+
+    animation: appear 0.5s ease;
+}
+
+/* ERROR CODE */
+
+.error-code {
+    font-size: clamp(100px, 20vw, 170px);
+    font-weight: 800;
+    line-height: 1;
+
+    letter-spacing: -8px;
+
+    color: var(--accent);
+
+    margin-bottom: 25px;
+}
+
+/* TITLE */
+
+.error-title {
+    font-size: clamp(24px, 5vw, 34px);
+    font-weight: 700;
+
+    color: var(--text);
+
+    margin-bottom: 15px;
+}
+
+/* DESCRIPTION */
+
+.error-description {
+    color: var(--muted);
+
+    font-size: 16px;
+    line-height: 1.8;
+
+    max-width: 470px;
+
+    margin: 0 auto 35px;
+}
+
+/* BUTTON */
+
+.error-button {
+    display: inline-block;
+
+    padding: 15px 30px;
+
+    border-radius: 10px;
+
+    background: var(--accent);
+    color: var(--surface);
+
+    text-decoration: none;
+    font-weight: 600;
+
+    transition: all 0.25s ease;
+}
+
+.error-button:hover {
+    background: var(--accent-dark);
+
+    transform: translateY(-3px);
+
+    box-shadow: 0 8px 20px rgba(82, 32, 5, 0.15);
+}
+
+/* FOOTER */
+
+.error-footer {
+    margin-top: 45px;
+
+    font-size: 12px;
+    color: var(--muted);
+
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* ANIMATION */
+
+@keyframes appear {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 480px) {
+    .error-container {
+        padding: 45px 20px;
+        border-radius: 18px;
+    }
+
+    .error-code {
+        letter-spacing: -5px;
+    }
+
+    .error-description {
+        font-size: 14px;
+    }
+
+    .error-button {
+        width: 100%;
+        padding: 14px 20px;
+    }
+}

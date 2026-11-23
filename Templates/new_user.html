@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Welcome - Lock-E</title>
+    <style>
+    :root {
+      --bg: #2d1f16;
+      --surface: #fbf7f2;
+      --line: #dccfc1;
+      --text: #4a3428;
+      --muted: #8b6b55;
+      --accent: #6f4e37;
+      --error-bg: #f3dcd6;
+      --error-text: #8a3b2a;
+    }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100dvh;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 18px;
+        color: var(--surface);
+        background: var(--bg);
+      }
+
+      main {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        padding: 32px 24px;
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+        text-align: center;
+      }
+
+      /* Titre + texte : centrés dans l'espace au-dessus des boutons */
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      h1 {
+        margin-bottom: 16px;
+        font-size: 44px;
+        line-height: 1.15;
+        color: var(--line);
+      }
+
+      p {
+        max-width: 420px;
+        font-size: 19px;
+        line-height: 1.5;
+        color: var(--line);
+      }
+
+      /* Boutons : collés en bas */
+      .actions {
+        width: 100%;
+        max-width: 420px;
+        margin: 0 auto;
+      }
+
+      .btn {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+        padding: 16px 24px;
+        font: inherit;
+        text-align: center;
+        text-decoration: none;
+        border: 2px solid var(--surface);
+        border-radius: 999px;
+      }
+
+      /* Bouton principal : crème plein, texte sombre */
+      .btn.primary {
+        color: var(--bg);
+        background: var(--surface);
+      }
+
+      /* Bouton secondaire : contour crème, fond transparent */
+      .btn.secondary {
+        color: var(--surface);
+        background: none;
+        border-color: var(--line);
+      }
+    </style>
+  </head>
+
+<body>
+  <main>
+    <div class="content">
+      <h1>Welcome to Lock-E</h1>
+      <p>
+        Find free lockers around you, reserve a compartment from your
+        phone and never walk again for nothing
+      </p>
+    </div>
+
+    <div class="actions">
+      <a class="btn primary" href="/login">Log in</a>
+      <a class="btn secondary" href="/register">Register</a>
+    </div>
+  </main>
+</body>
+</html>
