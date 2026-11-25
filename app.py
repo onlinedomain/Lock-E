@@ -7,8 +7,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, jsonify, request, redirect, render_template, session, abort
 import traceback # Traceback gives more detailed error messages with database difficulties
 
-RESERVATION_MINUTES = 0.2 # (DEFAULT 30) Time before reservation expiration. Has to be the same than in the Worker.py
-PENALTY_HOURS = 0.01 # (DEFAULT 24) Time used in the formula (PENALTY_HOURS * (penalty_score - 1)) to compute user penalty time
+RESERVATION_MINUTES = 0.4 # (DEFAULT 30, DEBUG 0.2-0.4) Time before reservation expiration. Has to be the same than in the Worker.py
+PENALTY_HOURS = 0.01 # (DEFAULT 24, DEBUG 0.01-0.02) Time used in the formula (PENALTY_HOURS * (penalty_score - 1)) to compute user penalty time
+MAX_RESERVATION_KM = 60 # Maximum distance (in km) between the user and a locker to be able to reserve it
 
 #%% ///////////////////////// Flask server configuration ////////////////////////
 app = Flask(__name__, static_folder='static', template_folder='Templates', static_url_path='')
@@ -92,7 +93,21 @@ def register():
         username = request.form["username"].strip()
         email = request.form["email"].strip()
         password = request.form["password"]
-        
+        confirm = request.form.get("confirm", "")
+
+        # The name can only contain letters
+        if not username.isalpha():
+            return render_template("register.html", error="Name must contain only letters.",
+                                   user=username, email=email)
+
+        # Same password criteria as in the reset password route
+        if len(password) < 8:
+            return render_template("register.html", error="Password must be at least 8 characters.",
+                                   user=username, email=email)
+        if password != confirm:
+            return render_template("register.html", error="Passwords do not match.",
+                                   user=username, email=email)
+
         db = get_db()
         try:
             db.execute("""INSERT INTO users (name, email, password_hash) 
@@ -162,6 +177,32 @@ def logout():
     session.clear()
     return redirect("/")
 
+@app.route("/delete-account", methods=["POST"])
+def delete_account():
+    if not session.get("user_id"):
+        return jsonify(error="unauthorized"), 401
+
+    db = get_db()
+    try:
+        # Frees the compartment of the user's active reservation if he has one
+        db.execute("""UPDATE compartments SET status = 'empty'
+                      WHERE id IN (SELECT compartment_id FROM reservations
+                                   WHERE user_id = ? AND status = 'active')""",
+                   (session["user_id"],))
+        # Reservations have to be deleted before the user because of the foreign key
+        db.execute("DELETE FROM reservations WHERE user_id = ?", (session["user_id"],))
+        db.execute("DELETE FROM users WHERE id = ?", (session["user_id"],))
+        db.commit()
+    except Exception:
+        traceback.print_exc()
+        db.rollback()
+        return jsonify(error="Could not delete your account, please try again"), 500
+    finally:
+        db.close()
+
+    session.clear()
+    return jsonify(message="Your account has been deleted")
+
 
 
 #%% /////////////////////////////////////////////////////////////////////////////
@@ -224,6 +265,9 @@ def checkReservationAvailability(locker_id, size, user_id):
     
     if compartment_available and not active_reservation:
         return [compartment_available["id"], False]
+    # No compartment of this size left : someone took the last one before the user
+    if not compartment_available:
+        return [False, "unavailable"]
     return [False, active_reservation]
 
 def getAccountUnlockedDate(user_id):
@@ -367,11 +411,32 @@ def reserve_compartment():
     if locker_id is None or size not in (1, 2, 3):
         return jsonify(error="Invalid request."), 400
 
+    # The user can't reserve a locker further than MAX_RESERVATION_KM from his location
+    user_lat = request.args.get("lat", type=float)
+    user_lon = request.args.get("lon", type=float)
+    if user_lat is None or user_lon is None:
+        return jsonify(error="Set your location on the map before reserving."), 400
+
+    db = get_db()
+    try:
+        locker = db.execute("SELECT latitude, longitude FROM lockers WHERE id = ?",
+                            (locker_id,)).fetchone()
+    finally:
+        db.close()
+
+    if locker is None:
+        return jsonify(error="This locker does not exist."), 404
+    if haversine_km(user_lat, user_lon, locker["latitude"], locker["longitude"]) > MAX_RESERVATION_KM:
+        return jsonify(error=f"You can't reserve a locker more than {MAX_RESERVATION_KM} km away from you."), 403
+
     compartmentAvailable = checkReservationAvailability(locker_id, size, session["user_id"])
     if not compartmentAvailable[0] and not compartmentAvailable[1]:
         date = getAccountUnlockedDate(session.get("user_id"))
         return jsonify(error=f"Your account is locked until {date}" if date else "Your account is locked."), 403
     
+    if compartmentAvailable[1] == "unavailable":
+        return jsonify(error="This compartment is no longer available, someone just took it"), 409
+
     if not compartmentAvailable[0]:
         return jsonify(error="You can have only 1 reservation at the time"), 409
 
@@ -388,7 +453,7 @@ def reserve_compartment():
     except sqlite3.IntegrityError:
         traceback.print_exc()
         db.rollback()
-        return jsonify(error="Someone just took this compartment, try another one"), 409
+        return jsonify(error="This compartment is no longer available, someone just took it"), 409
     except Exception:
         traceback.print_exc()
         db.rollback()
@@ -460,7 +525,7 @@ def getlockers():
             SELECT l.id, l.location_name, l.provider, l.latitude, l.longitude,
                    COALESCE(SUM(c.status = 'empty' AND c.size = 1), 0) AS small_left,
                    COALESCE(SUM(c.status = 'empty' AND c.size = 2), 0) AS medium_left,
-                   COALESCE(SUM(c.status = 'empty' AND c.size = 3), 0) AS big_left
+                   COALESCE(SUM(c.status = 'empty' AND c.size = 3), 0) AS large_left
             FROM lockers l
             LEFT JOIN compartments c ON c.locker_id = l.id
             GROUP BY l.id
@@ -480,7 +545,7 @@ def getlockers():
             ),
             "small_compartments_left": r["small_left"],
             "medium_compartments_left": r["medium_left"],
-            "big_compartments_left": r["big_left"],
+            "large_compartments_left": r["large_left"],
         }
         for r in rows
     ]
@@ -653,6 +718,10 @@ def forgot_password():
             user = db.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
         finally:
             db.close()
+
+        if not user:
+            return render_template("forgot_password.html",
+                                   error="No account is linked to this email address.")
 
         if user:
             try:

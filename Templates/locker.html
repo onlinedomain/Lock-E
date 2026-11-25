@@ -7,6 +7,12 @@
     <title>{{ locker["location_name"] }} - Lock-E</title>
     <link rel="stylesheet" href="/CSS/locker.css">
  
+    <!-- Progressive Web App -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2d1f16">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
+    <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>
   </head>
 
   <body>
@@ -27,7 +33,7 @@
 
       <h2>Choose a size</h2>
       <div class="choice-group" id="sizes">
-        {% for value, label in [(1, "Small"), (2, "Medium"), (3, "Big")] %}
+        {% for value, label in [(1, "Small"), (2, "Medium"), (3, "Large")] %}
         <div class="size-col">
           <button
             type="button"

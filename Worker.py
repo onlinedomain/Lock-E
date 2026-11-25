@@ -7,7 +7,7 @@ import traceback
 FOLDER = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(FOLDER, 'lock_e_database.db')
 
-RESERVATION_MINUTES = 0.2
+RESERVATION_MINUTES = 0.4
 PENALTY_HOURS = 0.01
 
 

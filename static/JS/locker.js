@@ -51,8 +51,11 @@ reserveBtn.addEventListener("click", async () => {
   reserveBtn.disabled = true;
 
   try {
+    // The user's location is sent to check he is not too far from the locker
+    const loc = JSON.parse(localStorage.getItem("user_location"));
+    const position = loc ? `&lat=${loc.lat}&lon=${loc.lng}` : "";
     const res = await fetch(
-      `/reserve-compartment?locker_id=${locker.dataset.id}&size=${selectedSize}`
+      `/reserve-compartment?locker_id=${locker.dataset.id}&size=${selectedSize}${position}`
     );
     const data = await res.json();
 

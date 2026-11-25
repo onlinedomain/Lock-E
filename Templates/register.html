@@ -124,6 +124,12 @@ button:focus-visible {
   outline-offset: 2px;
 }
   </style>
+  <!-- Progressive Web App -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2d1f16">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="icon" href="/icons/logo.svg" type="image/svg+xml">
+  <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>
 </head>
 <body>
 
@@ -139,17 +145,22 @@ button:focus-visible {
 
     <div class="form-inputs-div">
       <label for="username">Username</label>
-      <input id="username" type="text" name="username" value="{{user or ''}}" placeholder="John" required>
+      <input id="username" type="text" name="username" value="{{user or ''}}" placeholder="John" pattern="\p{L}+" title="Only letters are allowed" required>
     </div>
 
     <div class="form-inputs-div">
       <label for="email">Email</label>
-      <input id="email" type="email" name="email" placeholder="example@ex.com" required>
+      <input id="email" type="email" name="email" value="{{email or ''}}" placeholder="example@ex.com" required>
     </div>
 
     <div class="form-inputs-div">
       <label for="password">Password</label>
-      <input id="password" type="password" name="password" placeholder="----------" required>
+      <input id="password" type="password" name="password" minlength="8" placeholder="8 characters min." autocomplete="new-password" required>
+    </div>
+
+    <div class="form-inputs-div">
+      <label for="confirm">Confirm password</label>
+      <input id="confirm" type="password" name="confirm" minlength="8" placeholder="----------" autocomplete="new-password" required>
     </div>
 
     <button type="submit" id="register-submit">Create an account</button>

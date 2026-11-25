@@ -21,8 +21,17 @@ function applyProviderFilter(lockers) {
   return lockers.filter(
     (l) =>
       activeProviders.has(l.locker_brand) &&
-      l.distance_to_user_km <= maxDistanceKm,
+      // The distance filter only applies when the user has set his location
+      (!hasUserLocation() || l.distance_to_user_km <= maxDistanceKm),
   );
+}
+
+function hasUserLocation() {
+  try {
+    return Boolean(JSON.parse(localStorage.getItem("user_location")));
+  } catch {
+    return false;
+  }
 }
 
 function refreshFilterUI() {
@@ -68,11 +77,12 @@ document.querySelectorAll(".filter-chip").forEach((chip) =>
 refreshFilterUI();
 
 const DISTANCE_KEY = "distance_filter";
-const MAX_DISTANCE = 50;
+const MIN_DISTANCE = 5;
+const MAX_DISTANCE = 100;
 
 function loadDistanceFilter() {
   const n = Number(localStorage.getItem(DISTANCE_KEY));
-  return n >= 1 && n <= MAX_DISTANCE ? n : MAX_DISTANCE;
+  return n >= MIN_DISTANCE && n <= MAX_DISTANCE ? n : MAX_DISTANCE;
 }
 
 let maxDistanceKm = loadDistanceFilter();
@@ -81,14 +91,17 @@ const distanceRange = document.getElementById("distance-range");
 const distanceValue = document.getElementById("distance-value");
 
 function refreshDistanceUI() {
+  // The distance filter is only displayed when the user has set his location
+  distance_filter.hidden = !hasUserLocation();
   distanceRange.value = maxDistanceKm;
   distanceValue.textContent =
-    maxDistanceKm >= MAX_DISTANCE ? "50 km (no limit)" : `${maxDistanceKm} km`;
+    maxDistanceKm >= MAX_DISTANCE ? `${MAX_DISTANCE} km (no limit)` : `${maxDistanceKm} km`;
   // met à jour la pastille des boutons de filtre
   document.querySelectorAll(".filter-open").forEach((b) =>
     b.classList.toggle(
       "filtered",
-      activeProviders.size < ALL_PROVIDERS.length || maxDistanceKm < MAX_DISTANCE,
+      activeProviders.size < ALL_PROVIDERS.length ||
+        (hasUserLocation() && maxDistanceKm < MAX_DISTANCE),
     ),
   );
 }
@@ -251,7 +264,7 @@ async function displayLockersList() {
     const sizes = [
       ["S", l.small_compartments_left],
       ["M", l.medium_compartments_left],
-      ["B", l.big_compartments_left],
+      ["L", l.large_compartments_left],
     ];
 
     for (const [label, count] of sizes) {
@@ -303,7 +316,7 @@ async function displayBookingInfo() {
     return;
   }
 
-  const sizes = { 1: "Small", 2: "Medium", 3: "Big" };
+  const sizes = { 1: "Small", 2: "Medium", 3: "Large" };
 
   const card = document.createElement("div");
   card.className = "booking-card";
@@ -513,7 +526,14 @@ function initMap() {
     return;
   }
 
-  map = L.map("map").setView([35.855353, 128.485279], 15);
+  // Centers the map on the user's location if he already set it, otherwise on the default position
+  let savedLocation = null;
+  try {
+    savedLocation = JSON.parse(localStorage.getItem("user_location"));
+  } catch {}
+  const center = savedLocation ? [savedLocation.lat, savedLocation.lng] : [35.855353, 128.485279];
+
+  map = L.map("map").setView(center, 15);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; OpenStreetMap",
@@ -540,6 +560,10 @@ function initMap() {
     );
 
     displayUserLocation();
+
+    // Displays the distance filter and recomputes the lockers to display with the new location
+    refreshDistanceUI();
+    displayLockersOnMap();
 
     locationHint.hidden = true;
     locateBtn.classList.remove("placing");
@@ -609,7 +633,7 @@ function lockerIcon(l) {
   const sizes = [
     ["S", l.small_compartments_left],
     ["M", l.medium_compartments_left],
-    ["B", l.big_compartments_left]
+    ["L", l.large_compartments_left]
   ];
 
   const total = sizes.reduce((sum, [, n]) => sum + n, 0);
@@ -618,7 +642,7 @@ function lockerIcon(l) {
   const rows = sizes
     .map(
       ([label, n]) =>
-        `<div class="lk-row ${n > 0 ? "ok" : "none"}">${label}${n}</div>`
+        `<div class="lk-row ${n > 0 ? "ok" : "none"}">${label}-${n}</div>`
     )
     .join("");
 
@@ -633,8 +657,8 @@ function lockerIcon(l) {
         <div class="lk-tail"></div>
         ${total > 0 ? '<div class="lk-pulse"></div>' : ""}
       </div>`,
-    iconSize: [76, 54],
-    iconAnchor: [38, 51]
+    iconSize: [84, 54],
+    iconAnchor: [42, 51]
   });
 }
 

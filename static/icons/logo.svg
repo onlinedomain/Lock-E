@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Same gradient as the locker icons on the map -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7a553c"/>
+      <stop offset="1" stop-color="#522005"/>
+    </linearGradient>
+    <linearGradient id="door" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6f4e37"/>
+      <stop offset="1" stop-color="#522005"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background (full bleed so Android can cut it in any shape) -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- Shackle -->
+  <path d="M190 236 V196 a66 66 0 0 1 132 0 V236" fill="none" stroke="#f3ebe2" stroke-width="34" stroke-linecap="round"/>
+
+  <!-- Body of the padlock = the locker -->
+  <rect x="146" y="222" width="220" height="182" rx="34" fill="#f3ebe2"/>
+
+  <!-- Compartments : Small, Medium (left) and Large (right) -->
+  <rect x="170" y="246" width="80" height="42" rx="9" fill="url(#door)"/>
+  <rect x="170" y="298" width="80" height="82" rx="9" fill="url(#door)"/>
+  <rect x="262" y="246" width="80" height="134" rx="9" fill="url(#door)"/>
+
+  <!-- Handles -->
+  <rect x="232" y="262" width="8" height="10" rx="4" fill="#f3ebe2"/>
+  <rect x="232" y="330" width="8" height="18" rx="4" fill="#f3ebe2"/>
+  <rect x="324" y="300" width="8" height="26" rx="4" fill="#f3ebe2"/>
+
+  <!-- Green dot : a free compartment, like on the map -->
+  <circle cx="188" cy="267" r="8" fill="#4ade80"/>
+</svg>

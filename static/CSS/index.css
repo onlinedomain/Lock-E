@@ -398,7 +398,7 @@ l'emporter sur "#locker-list li" qui a padding: 20px) */
 
 .lk-wrap {
   position: relative;
-  width: 76px;
+  width: 84px;
   height: 54px;
 }
 
@@ -407,7 +407,7 @@ l'emporter sur "#locker-list li" qui a padding: 20px) */
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 76px;
+  width: 84px;
   height: 42px;
   padding: 0 8px 0 5px;
   background: linear-gradient(145deg, #7a553c 0%, #522005 100%);
@@ -441,7 +441,7 @@ l'emporter sur "#locker-list li" qui a padding: 20px) */
   object-fit: contain;
 }
 
-/* Compteurs S / M / B */
+/* Compteurs S / M / L */
 .lk-counts {
   display: flex;
   flex-direction: column;
@@ -1131,4 +1131,9 @@ l'emporter sur "#locker-list li" qui a padding: 20px) */
   font-size: 1.2rem;
   letter-spacing: 0.04em;
   transform: rotate(-2deg);
+}
+#delete-account-btn {
+  color: #fff;
+  background: #8a3b2a;
+  border-color: #8a3b2a;
 }

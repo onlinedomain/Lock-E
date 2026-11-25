@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#2d1f16" />
+    <title>Offline - Lock-E</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 18px;
+        color: #4a3428;
+        background: #2d1f16;
+      }
+
+      .card {
+        width: 100%;
+        max-width: 420px;
+        padding: 32px 24px;
+        text-align: center;
+        background: #fbf7f2;
+        border-radius: 18px;
+      }
+
+      h1 { margin-bottom: 12px; font-size: 28px; }
+      p { margin-bottom: 24px; line-height: 1.5; }
+
+      button {
+        width: 100%;
+        padding: 16px 24px;
+        font: inherit;
+        color: #fbf7f2;
+        background: #4a3428;
+        border: none;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>You are offline</h1>
+      <p>Lock-E needs an internet connection to show the lockers and your reservations.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </div>
+  </body>
+</html>
